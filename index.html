@@ -1,11 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roommate Debt Tracker</title>
+    <title>BillShare - Roommate Expense Tracker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,611 +13,697 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 10px;
-        }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 10px;
+    }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
 
-        .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+    .header {
+        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
 
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
+    .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
 
-        .debt-banner {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 1.2rem;
+    .debt-banner {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+
+    .tabs {
+        display: flex;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        flex-wrap: wrap;
+    }
+
+    .tab {
+        flex: 1;
+        min-width: 150px;
+        padding: 20px 10px;
+        background: #f8f9fa;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: #495057;
+    }
+
+    .tab:hover {
+        background: #e9ecef;
+    }
+
+    .tab.active {
+        background: white;
+        color: #2c3e50;
+        border-bottom: 3px solid #3498db;
+    }
+
+    .tab-content {
+        display: none;
+        padding: 20px;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .manual-entry {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .manual-entry h3 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 2fr 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 15px;
+        align-items: end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .form-group input, .form-group select {
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+
+    .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        margin: 5px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #27ae60, #229954);
+        color: white;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-small {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+        overflow-x: auto;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    .table th {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 15px 10px;
+        text-align: left;
+        font-weight: 700;
+    }
+
+    .table td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .table tbody tr:nth-child(even) {
+        background-color: #fafbfc;
+    }
+
+    .split-bill {
+        background-color: #fff3cd !important;
+    }
+
+    .full-bill {
+        background-color: #d1ecf1 !important;
+    }
+
+    .deduction {
+        background-color: #d4edda !important;
+    }
+
+    .currency {
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .totals-row {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        font-weight: 700;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .dashboard-card {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .dashboard-card h3 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+    }
+
+    .metric {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+    .metric-label {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .metric-value {
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .debt-amount {
+        color: #e74c3c !important;
+        font-size: 1.5rem !important;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-weight: 600;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .recent-item {
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        margin-bottom: 8px;
+        border-left: 3px solid #3498db;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
         }
 
         .tabs {
-            display: flex;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
-            flex-wrap: wrap;
-        }
-
-        .tab {
-            flex: 1;
-            min-width: 150px;
-            padding: 20px 10px;
-            background: #f8f9fa;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            color: #495057;
-        }
-
-        .tab:hover {
-            background: #e9ecef;
-        }
-
-        .tab.active {
-            background: white;
-            color: #2c3e50;
-            border-bottom: 3px solid #3498db;
-        }
-
-        .tab-content {
-            display: none;
-            padding: 20px;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .manual-entry {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .manual-entry h3 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-size: 1.3rem;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-            align-items: end;
-        }
-
-        .form-group {
-            display: flex;
             flex-direction: column;
         }
 
-        .form-group label {
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .form-group input, .form-group select {
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #27ae60, #229954);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .table-container {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-            overflow-x: auto;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 800px;
-        }
-
-        .table th {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            color: white;
-            padding: 15px 10px;
-            text-align: left;
-            font-weight: 700;
-        }
-
-        .table td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .table tbody tr:nth-child(even) {
-            background-color: #fafbfc;
-        }
-
-        .split-bill {
-            background-color: #fff3cd !important;
-        }
-
-        .full-bill {
-            background-color: #d1ecf1 !important;
-        }
-
-        .deduction {
-            background-color: #d4edda !important;
-        }
-
-        .currency {
-            text-align: right;
-            font-weight: 600;
-        }
-
-        .totals-row {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            font-weight: 700;
-        }
-
         .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .dashboard-card {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .dashboard-card h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-        }
-
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f3f4;
-        }
-
-        .metric-label {
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .metric-value {
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .debt-amount {
-            color: #e74c3c !important;
-            font-size: 1.5rem !important;
+            grid-template-columns: 1fr;
         }
 
         .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-weight: 600;
+            position: relative;
+            top: auto;
+            right: auto;
+            margin: 10px;
         }
+    }
+</style>
 
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .tabs {
-                flex-direction: column;
-            }
-
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Roommate Debt Tracker</h1>
-            <p>Track what you owe your roommate</p>
+            <h1>💰 BillShare</h1>
+            <p>Smart Roommate Expense Tracker</p>
         </div>
 
-        <div class="debt-banner" id="debtBanner">
-            Current Amount Owed: $18,318.41
-        </div>
+    <div class="debt-banner" id="debtBanner">
+        Current Amount Owed: $0.00
+    </div>
 
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('bills')">📊 Bills Tracker</button>
-            <button class="tab" onclick="switchTab('dashboard')">📈 Dashboard</button>
-            <button class="tab" onclick="switchTab('monthly')">📅 Monthly View</button>
-        </div>
+    <div class="tabs">
+        <button class="tab active" id="bills-tab-btn">📊 Bills Tracker</button>
+        <button class="tab" id="dashboard-tab-btn">📈 Dashboard</button>
+        <button class="tab" id="monthly-tab-btn">📅 Monthly View</button>
+    </div>
 
-        <div id="bills-tab" class="tab-content active">
-            <div class="manual-entry">
-                <h3>➕ Add New Bill Entry</h3>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="entryDate">Date</label>
-                        <input type="date" id="entryDate" />
-                    </div>
-                    <div class="form-group">
-                        <label for="expenseName">Expense Name</label>
-                        <input type="text" id="expenseName" placeholder="e.g., Electric Bill" />
-                    </div>
-                    <div class="form-group">
-                        <label for="expenseValue">Full Amount ($)</label>
-                        <input type="number" id="expenseValue" step="0.01" placeholder="0.00" />
-                    </div>
-                    <div class="form-group">
-                        <label for="billType">Bill Type</label>
-                        <select id="billType">
-                            <option value="">Select type</option>
-                            <option value="split">Split in Half</option>
-                            <option value="full">You Pay Full</option>
-                            <option value="deduction">Deduction (PT/Meals)</option>
-                        </select>
-                    </div>
+    <div id="bills-tab" class="tab-content active">
+        <div class="manual-entry">
+            <h3>➕ Add New Bill Entry</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="entryDate">Date</label>
+                    <input type="date" id="entryDate" />
                 </div>
-                <div style="text-align: center;">
-                    <button class="btn btn-primary" onclick="addEntry()">Add Entry</button>
-                    <button class="btn btn-danger" onclick="clearAllData()">Clear All</button>
+                <div class="form-group">
+                    <label for="expenseName">Expense Name</label>
+                    <input type="text" id="expenseName" placeholder="e.g., Electric Bill" />
+                </div>
+                <div class="form-group">
+                    <label for="expenseValue">Full Amount ($)</label>
+                    <input type="number" id="expenseValue" step="0.01" placeholder="0.00" />
+                </div>
+                <div class="form-group">
+                    <label for="billType">Bill Type</label>
+                    <select id="billType">
+                        <option value="">Select type</option>
+                        <option value="split">Split in Half</option>
+                        <option value="full">You Pay Full</option>
+                        <option value="deduction">Deduction (PT/Meals)</option>
+                    </select>
                 </div>
             </div>
-
-            <div class="table-container">
-                <table class="table" id="billsTable">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Expense Name</th>
-                            <th>Full Amount</th>
-                            <th>Your Portion</th>
-                            <th>Type</th>
-                            <th>Running Total</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="billsTableBody">
-                    </tbody>
-                </table>
-            </div>
-
-            <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-success" onclick="downloadSpreadsheet()">📥 Download Excel</button>
+            <div style="text-align: center;">
+                <button class="btn btn-primary" id="add-entry-btn">Add Entry</button>
+                <button class="btn btn-danger" id="clear-all-btn">Clear All</button>
             </div>
         </div>
 
-        <div id="dashboard-tab" class="tab-content">
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <h3>💰 Debt Overview</h3>
-                    <div class="metric">
-                        <span class="metric-label">Total Amount Owed:</span>
-                        <span class="metric-value debt-amount" id="totalOwed">$18,318.41</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Split Bills Total:</span>
-                        <span class="metric-value" id="splitBillsTotal">$0.00</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Full Bills Total:</span>
-                        <span class="metric-value" id="fullBillsTotal">$0.00</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Deductions Total:</span>
-                        <span class="metric-value" id="deductionsTotal">$0.00</span>
-                    </div>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>📊 Bill Breakdown</h3>
-                    <div class="metric">
-                        <span class="metric-label">Split Bills Count:</span>
-                        <span class="metric-value" id="splitBillsCount">0</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Full Bills Count:</span>
-                        <span class="metric-value" id="fullBillsCount">0</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Deductions Count:</span>
-                        <span class="metric-value" id="deductionsCount">0</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Total Entries:</span>
-                        <span class="metric-value" id="totalEntries">0</span>
-                    </div>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>📅 This Month</h3>
-                    <div class="metric">
-                        <span class="metric-label">Month Added:</span>
-                        <span class="metric-value" id="monthAdded">$0.00</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Month Deducted:</span>
-                        <span class="metric-value" id="monthDeducted">$0.00</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Net This Month:</span>
-                        <span class="metric-value" id="monthNet">$0.00</span>
-                    </div>
-                </div>
-
-                <div class="dashboard-card">
-                    <h3>📈 Recent Activity</h3>
-                    <div id="recentActivity">
-                        <p>No recent activity</p>
-                    </div>
-                </div>
-            </div>
+        <div class="table-container">
+            <table class="table" id="billsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Expense Name</th>
+                        <th>Full Amount</th>
+                        <th>Your Portion</th>
+                        <th>Type</th>
+                        <th>Running Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="billsTableBody">
+                </tbody>
+            </table>
         </div>
 
-        <div id="monthly-tab" class="tab-content">
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn btn-success" id="download-excel-btn">📥 Download Data Only</button>
+            <button class="btn btn-primary" id="download-formula-btn">📊 Download with Formulas</button>
+        </div>
+    </div>
+
+    <div id="dashboard-tab" class="tab-content">
+        <div class="dashboard-grid">
             <div class="dashboard-card">
-                <h3>📅 Monthly Summary</h3>
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Month</th>
-                                <th>Bills Added</th>
-                                <th>Deductions</th>
-                                <th>Net Amount</th>
-                                <th>Running Total</th>
-                            </tr>
-                        </thead>
-                        <tbody id="monthlyTableBody">
-                        </tbody>
-                    </table>
+                <h3>💰 Debt Overview</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Amount Owed:</span>
+                    <span class="metric-value debt-amount" id="totalOwed">$0.00</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Split Bills Total:</span>
+                    <span class="metric-value" id="splitBillsTotal">$0.00</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Full Bills Total:</span>
+                    <span class="metric-value" id="fullBillsTotal">$0.00</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Deductions Total:</span>
+                    <span class="metric-value" id="deductionsTotal">$0.00</span>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>📊 Bill Breakdown</h3>
+                <div class="metric">
+                    <span class="metric-label">Split Bills Count:</span>
+                    <span class="metric-value" id="splitBillsCount">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Full Bills Count:</span>
+                    <span class="metric-value" id="fullBillsCount">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Deductions Count:</span>
+                    <span class="metric-value" id="deductionsCount">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Entries:</span>
+                    <span class="metric-value" id="totalEntries">0</span>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>📅 This Month</h3>
+                <div class="metric">
+                    <span class="metric-label">Month Added:</span>
+                    <span class="metric-value" id="monthAdded">$0.00</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Month Deducted:</span>
+                    <span class="metric-value" id="monthDeducted">$0.00</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Net This Month:</span>
+                    <span class="metric-value" id="monthNet">$0.00</span>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>📈 Recent Activity</h3>
+                <div id="recentActivity">
+                    <p>No recent activity</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        let billsData = [];
-        let runningBalance = 12843; // Starting balance from January
+    <div id="monthly-tab" class="tab-content">
+        <div class="dashboard-card">
+            <h3>📅 Monthly Summary</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Bills Added</th>
+                            <th>Deductions</th>
+                            <th>Net Amount</th>
+                            <th>Running Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-        // Your actual bill data with correct calculations
-        const initialData = [
-            // February
-            { date: '2024-02-01', name: 'Mortgage', fullAmount: 641, yourPortion: 320.50, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Spectrum', fullAmount: 164, yourPortion: 82.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Illuminating CO', fullAmount: 146, yourPortion: 73.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Kimble', fullAmount: 74.25, yourPortion: 37.13, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Columbia Gas', fullAmount: 66, yourPortion: 33.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Food', fullAmount: 128, yourPortion: 64.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Misc', fullAmount: 63, yourPortion: 31.50, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Loan', fullAmount: 128, yourPortion: 128.00, type: 'full', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Verizon', fullAmount: 243, yourPortion: 243.00, type: 'full', runningTotal: 0 },
-            { date: '2024-02-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
-            { date: '2024-02-15', name: 'Meals Deduct', fullAmount: 600, yourPortion: -600.00, type: 'deduction', runningTotal: 0 },
-            
-            // March
-            { date: '2024-03-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Illuminating CO', fullAmount: 136.52, yourPortion: 68.26, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Verizon', fullAmount: 152.71, yourPortion: 76.36, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Water', fullAmount: 119.58, yourPortion: 59.79, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Food', fullAmount: 167, yourPortion: 83.50, type: 'split', runningTotal: 0 },
-            { date: '2024-03-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
-            
-            // April
-            { date: '2024-04-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Illuminating CO', fullAmount: 97.74, yourPortion: 48.87, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Food', fullAmount: 472.35, yourPortion: 236.18, type: 'split', runningTotal: 0 },
-            
-            // May
-            { date: '2024-05-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Illuminating CO', fullAmount: 114.03, yourPortion: 57.02, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Verizon', fullAmount: 152.33, yourPortion: 76.17, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Food', fullAmount: 518, yourPortion: 259.00, type: 'split', runningTotal: 0 },
-            
-            // June
-            { date: '2024-06-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Kimble', fullAmount: 73.56, yourPortion: 36.78, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Verizon', fullAmount: 152.77, yourPortion: 76.39, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Food', fullAmount: 360, yourPortion: 180.00, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Misc', fullAmount: 85.88, yourPortion: 42.94, type: 'split', runningTotal: 0 },
-            
-            // July
-            { date: '2024-07-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Columbia Gas', fullAmount: 86.4, yourPortion: 43.20, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Verizon', fullAmount: 153, yourPortion: 76.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Water', fullAmount: 109.88, yourPortion: 54.94, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Food', fullAmount: 427, yourPortion: 213.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Loan', fullAmount: 400, yourPortion: 400.00, type: 'full', runningTotal: 0 },
-            
-            // August
-            { date: '2024-08-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Illuminating CO', fullAmount: 90.44, yourPortion: 45.22, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Columbia Gas', fullAmount: 89, yourPortion: 44.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Verizon', fullAmount: 153, yourPortion: 76.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Food', fullAmount: 308, yourPortion: 154.00, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Loan', fullAmount: 225, yourPortion: 225.00, type: 'full', runningTotal: 0 }
-        ];
+<script>
+    // Global variables
+    let billsData = [];
+    let runningBalance = 12843; // Starting balance from January
 
-        window.onload = function() {
-            const savedData = localStorage.getItem('roomateDebtData');
-            billsData = savedData ? JSON.parse(savedData) : initialData;
-            
-            calculateRunningTotals();
-            updateDisplay();
+    // Your actual bill data
+    const initialData = [
+        // February 2025
+        { date: '2025-02-01', name: 'Mortgage', fullAmount: 641, yourPortion: 320.50, type: 'split' },
+        { date: '2025-02-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split' },
+        { date: '2025-02-01', name: 'Spectrum', fullAmount: 164, yourPortion: 82.00, type: 'split' },
+        { date: '2025-02-01', name: 'Illuminating CO', fullAmount: 146, yourPortion: 73.00, type: 'split' },
+        { date: '2025-02-01', name: 'Kimble', fullAmount: 74.25, yourPortion: 37.13, type: 'split' },
+        { date: '2025-02-01', name: 'Columbia Gas', fullAmount: 66, yourPortion: 33.00, type: 'split' },
+        { date: '2025-02-01', name: 'Food', fullAmount: 128, yourPortion: 64.00, type: 'split' },
+        { date: '2025-02-01', name: 'Misc', fullAmount: 63, yourPortion: 31.50, type: 'split' },
+        { date: '2025-02-01', name: 'Loan', fullAmount: 128, yourPortion: 128.00, type: 'full' },
+        { date: '2025-02-01', name: 'Verizon', fullAmount: 243, yourPortion: 243.00, type: 'full' },
+        { date: '2025-02-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction' },
+        { date: '2025-02-15', name: 'Meals Deduct', fullAmount: 600, yourPortion: -600.00, type: 'deduction' },
+        
+        // March 2025
+        { date: '2025-03-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split' },
+        { date: '2025-03-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split' },
+        { date: '2025-03-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split' },
+        { date: '2025-03-01', name: 'Illuminating CO', fullAmount: 136.52, yourPortion: 68.26, type: 'split' },
+        { date: '2025-03-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split' },
+        { date: '2025-03-01', name: 'Verizon', fullAmount: 152.71, yourPortion: 76.36, type: 'split' },
+        { date: '2025-03-01', name: 'Water', fullAmount: 119.58, yourPortion: 59.79, type: 'split' },
+        { date: '2025-03-01', name: 'Food', fullAmount: 167, yourPortion: 83.50, type: 'split' },
+        { date: '2025-03-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction' },
+        
+        // April 2025
+        { date: '2025-04-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split' },
+        { date: '2025-04-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split' },
+        { date: '2025-04-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split' },
+        { date: '2025-04-01', name: 'Illuminating CO', fullAmount: 97.74, yourPortion: 48.87, type: 'split' },
+        { date: '2025-04-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split' },
+        { date: '2025-04-01', name: 'Food', fullAmount: 472.35, yourPortion: 236.18, type: 'split' },
+        
+        // May 2025
+        { date: '2025-05-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split' },
+        { date: '2025-05-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split' },
+        { date: '2025-05-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split' },
+        { date: '2025-05-01', name: 'Illuminating CO', fullAmount: 114.03, yourPortion: 57.02, type: 'split' },
+        { date: '2025-05-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split' },
+        { date: '2025-05-01', name: 'Verizon', fullAmount: 152.33, yourPortion: 76.17, type: 'split' },
+        { date: '2025-05-01', name: 'Food', fullAmount: 518, yourPortion: 259.00, type: 'split' },
+        
+        // June 2025
+        { date: '2025-06-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split' },
+        { date: '2025-06-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split' },
+        { date: '2025-06-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split' },
+        { date: '2025-06-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split' },
+        { date: '2025-06-01', name: 'Kimble', fullAmount: 73.56, yourPortion: 36.78, type: 'split' },
+        { date: '2025-06-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split' },
+        { date: '2025-06-01', name: 'Verizon', fullAmount: 152.77, yourPortion: 76.39, type: 'split' },
+        { date: '2025-06-01', name: 'Food', fullAmount: 360, yourPortion: 180.00, type: 'split' },
+        { date: '2025-06-01', name: 'Misc', fullAmount: 85.88, yourPortion: 42.94, type: 'split' },
+        
+        // July 2025
+        { date: '2025-07-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split' },
+        { date: '2025-07-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split' },
+        { date: '2025-07-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split' },
+        { date: '2025-07-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split' },
+        { date: '2025-07-01', name: 'Columbia Gas', fullAmount: 86.4, yourPortion: 43.20, type: 'split' },
+        { date: '2025-07-01', name: 'Verizon', fullAmount: 153, yourPortion: 76.50, type: 'split' },
+        { date: '2025-07-01', name: 'Water', fullAmount: 109.88, yourPortion: 54.94, type: 'split' },
+        { date: '2025-07-01', name: 'Food', fullAmount: 427, yourPortion: 213.50, type: 'split' },
+        { date: '2025-07-01', name: 'Loan', fullAmount: 400, yourPortion: 400.00, type: 'full' },
+        
+        // August 2025
+        { date: '2025-08-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split' },
+        { date: '2025-08-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split' },
+        { date: '2025-08-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split' },
+        { date: '2025-08-01', name: 'Illuminating CO', fullAmount: 90.44, yourPortion: 45.22, type: 'split' },
+        { date: '2025-08-01', name: 'Columbia Gas', fullAmount: 89, yourPortion: 44.50, type: 'split' },
+        { date: '2025-08-01', name: 'Verizon', fullAmount: 153, yourPortion: 76.50, type: 'split' },
+        { date: '2025-08-01', name: 'Food', fullAmount: 308, yourPortion: 154.00, type: 'split' },
+        { date: '2025-08-01', name: 'Loan', fullAmount: 225, yourPortion: 225.00, type: 'full' }
+    ];
+
+    // Utility functions
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(amount);
+    }
+
+    function formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString();
+    }
+
+    function showAlert(message, type = 'success') {
+        // Remove existing alerts
+        const existingAlert = document.querySelector('.alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        document.body.appendChild(alert);
+
+        // Remove alert after 3 seconds
+        setTimeout(() => {
+            if (alert && alert.parentNode) {
+                alert.remove();
+            }
+        }, 3000);
+    }
+
+    // Data management functions
+    function saveToLocalStorage() {
+        localStorage.setItem('roommateDebtData', JSON.stringify(billsData));
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem('roommateDebtData');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    function calculateRunningTotals() {
+        let running = runningBalance;
+        billsData.forEach(bill => {
+            running += bill.yourPortion;
+            bill.runningTotal = running;
+        });
+        
+        // Update the debt banner
+        const finalBalance = billsData.length > 0 ? billsData[billsData.length - 1].runningTotal : runningBalance;
+        document.getElementById('debtBanner').textContent = `Current Amount Owed: ${formatCurrency(finalBalance)}`;
+    }
+
+    // Tab switching
+    function switchTab(tabName) {
+        // Remove active classes
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        // Add active classes
+        document.getElementById(`${tabName}-tab-btn`).classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+        
+        // Update content if needed
+        if (tabName === 'dashboard') {
             updateDashboard();
+        } else if (tabName === 'monthly') {
             updateMonthlyView();
-            
-            showAlert('💰 Debt tracker loaded with your actual bill data!', 'success');
+        }
+    }
+
+    // Entry management
+    function addEntry() {
+        const date = document.getElementById('entryDate').value;
+        const name = document.getElementById('expenseName').value.trim();
+        const fullAmount = parseFloat(document.getElementById('expenseValue').value) || 0;
+        const billType = document.getElementById('billType').value;
+
+        if (!date || !name || fullAmount === 0 || !billType) {
+            showAlert('Please fill in all fields!', 'warning');
+            return;
+        }
+
+        let yourPortion = 0;
+        switch(billType) {
+            case 'split':
+                yourPortion = fullAmount / 2;
+                break;
+            case 'full':
+                yourPortion = fullAmount;
+                break;
+            case 'deduction':
+                yourPortion = -fullAmount;
+                break;
+        }
+
+        const newEntry = {
+            date: date,
+            name: name,
+            fullAmount: fullAmount,
+            yourPortion: yourPortion,
+            type: billType,
+            runningTotal: 0
         };
 
-        function calculateRunningTotals() {
-            let running = runningBalance;
-            billsData.forEach(bill => {
-                running += bill.yourPortion;
-                bill.runningTotal = running;
-            });
-            
-            // Update the debt banner
-            const finalBalance = billsData.length > 0 ? billsData[billsData.length - 1].runningTotal : runningBalance;
-            document.getElementById('debtBanner').textContent = `Current Amount Owed: ${formatCurrency(finalBalance)}`;
-        }
+        billsData.push(newEntry);
+        
+        // Sort by date
+        billsData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        calculateRunningTotals();
+        saveToLocalStorage();
+        updateDisplay();
+        updateDashboard();
+        updateMonthlyView();
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-            
-            if (tabName === 'dashboard') {
-                updateDashboard();
-            } else if (tabName === 'monthly') {
-                updateMonthlyView();
-            }
-        }
+        // Clear form
+        clearForm();
+        
+        showAlert(`✅ ${name} added successfully!`, 'success');
+    }
 
-        function addEntry() {
-            const date = document.getElementById('entryDate').value;
-            const name = document.getElementById('expenseName').value;
-            const fullAmount = parseFloat(document.getElementById('expenseValue').value) || 0;
-            const billType = document.getElementById('billType').value;
-
-            if (!date || !name || fullAmount === 0 || !billType) {
-                showAlert('Please fill in all fields!', 'warning');
-                return;
-            }
-
-            let yourPortion = 0;
-            switch(billType) {
-                case 'split':
-                    yourPortion = fullAmount / 2;
-                    break;
-                case 'full':
-                    yourPortion = fullAmount;
-                    break;
-                case 'deduction':
-                    yourPortion = -fullAmount;
-                    break;
-            }
-
-            const newEntry = {
-                date: date,
-                name: name,
-                fullAmount: fullAmount,
-                yourPortion: yourPortion,
-                type: billType,
-                runningTotal: 0
-            };
-
-            billsData.push(newEntry);
-            calculateRunningTotals();
-            saveToLocalStorage();
-            updateDisplay();
-            updateDashboard();
-            updateMonthlyView();
-
-            // Clear form
-            document.getElementById('entryDate').value = '';
-            document.getElementById('expenseName').value = '';
-            document.getElementById('expenseValue').value = '';
-            document.getElementById('billType').value = '';
-
-            showAlert(`✅ ${name} added successfully!`, 'success');
-        }
-
-        function removeEntry(index) {
-            const bill = billsData[index];
+    function removeEntry(index) {
+        const bill = billsData[index];
+        if (confirm(`Are you sure you want to remove "${bill.name}"?`)) {
             billsData.splice(index, 1);
             calculateRunningTotals();
             saveToLocalStorage();
@@ -626,17 +712,584 @@
             updateMonthlyView();
             showAlert(`Removed: ${bill.name}`, 'success');
         }
+    }
 
-        function clearAllData() {
-            if (confirm('Are you sure? This will delete all bill data!')) {
-                billsData = [];
-                calculateRunningTotals();
-                saveToLocalStorage();
-                updateDisplay();
-                updateDashboard();
-                updateMonthlyView();
-                showAlert('All data cleared!', 'success');
+    function clearForm() {
+        document.getElementById('entryDate').value = '';
+        document.getElementById('expenseName').value = '';
+        document.getElementById('expenseValue').value = '';
+        document.getElementById('billType').value = '';
+    }
+
+    function clearAllData() {
+        if (confirm('Are you sure? This will delete all bill data!')) {
+            billsData = [];
+            calculateRunningTotals();
+            saveToLocalStorage();
+            updateDisplay();
+            updateDashboard();
+            updateMonthlyView();
+            showAlert('All data cleared!', 'success');
+        }
+    }
+
+    // Display functions
+    function updateDisplay() {
+        const tbody = document.getElementById('billsTableBody');
+        tbody.innerHTML = '';
+
+        billsData.forEach((bill, index) => {
+            const row = document.createElement('tr');
+            
+            // Add row class based on bill type
+            switch(bill.type) {
+                case 'split':
+                    row.className = 'split-bill';
+                    break;
+                case 'full':
+                    row.className = 'full-bill';
+                    break;
+                case 'deduction':
+                    row.className = 'deduction';
+                    break;
+            }
+
+            row.innerHTML = `
+                <td>${formatDate(bill.date)}</td>
+                <td>${bill.name}</td>
+                <td class="currency">${formatCurrency(bill.fullAmount)}</td>
+                <td class="currency">${formatCurrency(bill.yourPortion)}</td>
+                <td>${bill.type.charAt(0).toUpperCase() + bill.type.slice(1)}</td>
+                <td class="currency">${formatCurrency(bill.runningTotal)}</td>
+                <td>
+                    <button class="btn btn-danger btn-small" onclick="removeEntry(${index})">Remove</button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+
+        // Add totals row
+        if (billsData.length > 0) {
+            const totalsRow = document.createElement('tr');
+            totalsRow.className = 'totals-row';
+            
+            const splitTotal = billsData.filter(b => b.type === 'split').reduce((sum, b) => sum + b.yourPortion, 0);
+            const fullTotal = billsData.filter(b => b.type === 'full').reduce((sum, b) => sum + b.yourPortion, 0);
+            const deductionTotal = billsData.filter(b => b.type === 'deduction').reduce((sum, b) => sum + b.yourPortion, 0);
+            const totalPortion = billsData.reduce((sum, b) => sum + b.yourPortion, 0);
+            const finalTotal = runningBalance + totalPortion;
+
+            totalsRow.innerHTML = `
+                <td colspan="2"><strong>TOTALS</strong></td>
+                <td class="currency"><strong>${formatCurrency(billsData.reduce((sum, b) => sum + b.fullAmount, 0))}</strong></td>
+                <td class="currency"><strong>${formatCurrency(totalPortion)}</strong></td>
+                <td><strong>All Types</strong></td>
+                <td class="currency"><strong>${formatCurrency(finalTotal)}</strong></td>
+                <td></td>
+            `;
+            
+            tbody.appendChild(totalsRow);
+        }
+    }
+
+    function updateDashboard() {
+        const splitBills = billsData.filter(b => b.type === 'split');
+        const fullBills = billsData.filter(b => b.type === 'full');
+        const deductions = billsData.filter(b => b.type === 'deduction');
+
+        const splitTotal = splitBills.reduce((sum, b) => sum + b.yourPortion, 0);
+        const fullTotal = fullBills.reduce((sum, b) => sum + b.yourPortion, 0);
+        const deductionTotal = Math.abs(deductions.reduce((sum, b) => sum + b.yourPortion, 0));
+        const totalOwed = runningBalance + billsData.reduce((sum, b) => sum + b.yourPortion, 0);
+
+        document.getElementById('totalOwed').textContent = formatCurrency(totalOwed);
+        document.getElementById('splitBillsTotal').textContent = formatCurrency(splitTotal);
+        document.getElementById('fullBillsTotal').textContent = formatCurrency(fullTotal);
+        document.getElementById('deductionsTotal').textContent = formatCurrency(deductionTotal);
+
+        document.getElementById('splitBillsCount').textContent = splitBills.length;
+        document.getElementById('fullBillsCount').textContent = fullBills.length;
+        document.getElementById('deductionsCount').textContent = deductions.length;
+        document.getElementById('totalEntries').textContent = billsData.length;
+
+        // Current month calculations
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const thisMonthBills = billsData.filter(b => {
+            const billDate = new Date(b.date);
+            return billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear;
+        });
+
+        const monthAdded = thisMonthBills.filter(b => b.yourPortion > 0).reduce((sum, b) => sum + b.yourPortion, 0);
+        const monthDeducted = Math.abs(thisMonthBills.filter(b => b.yourPortion < 0).reduce((sum, b) => sum + b.yourPortion, 0));
+        const monthNet = monthAdded - monthDeducted;
+
+        document.getElementById('monthAdded').textContent = formatCurrency(monthAdded);
+        document.getElementById('monthDeducted').textContent = formatCurrency(monthDeducted);
+        document.getElementById('monthNet').textContent = formatCurrency(monthNet);
+
+        // Recent activity
+        updateRecentActivity();
+    }
+
+    function updateRecentActivity() {
+        const recentActivityDiv = document.getElementById('recentActivity');
+        const recentBills = billsData.slice(-5).reverse(); // Last 5 bills, newest first
+
+        if (recentBills.length === 0) {
+            recentActivityDiv.innerHTML = '<p>No recent activity</p>';
+            return;
+        }
+
+        recentActivityDiv.innerHTML = recentBills.map(bill => `
+            <div class="recent-item">
+                <div style="font-weight: 600;">${bill.name}</div>
+                <div style="font-size: 0.9rem; color: #666;">
+                    ${formatDate(bill.date)} - ${formatCurrency(bill.yourPortion)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updateMonthlyView() {
+        const monthlyData = {};
+        
+        // Group bills by month
+        billsData.forEach(bill => {
+            const date = new Date(bill.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    month: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+                    added: 0,
+                    deducted: 0,
+                    net: 0,
+                    runningTotal: 0
+                };
+            }
+            
+            if (bill.yourPortion > 0) {
+                monthlyData[monthKey].added += bill.yourPortion;
+            } else {
+                monthlyData[monthKey].deducted += Math.abs(bill.yourPortion);
+            }
+            
+            monthlyData[monthKey].net = monthlyData[monthKey].added - monthlyData[monthKey].deducted;
+        });
+
+        // Calculate running totals
+        let running = runningBalance;
+        Object.keys(monthlyData).sort().forEach(key => {
+            running += monthlyData[key].net;
+            monthlyData[key].runningTotal = running;
+        });
+
+        // Update table
+        const tbody = document.getElementById('monthlyTableBody');
+        tbody.innerHTML = '';
+
+        if (Object.keys(monthlyData).length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No data available</td></tr>';
+            return;
+        }
+
+        Object.keys(monthlyData).sort().forEach(key => {
+            const data = monthlyData[key];
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.month}</td>
+                <td class="currency">${formatCurrency(data.added)}</td>
+                <td class="currency">${formatCurrency(data.deducted)}</td>
+                <td class="currency">${formatCurrency(data.net)}</td>
+                <td class="currency">${formatCurrency(data.runningTotal)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function downloadSpreadsheet() {
+        if (billsData.length === 0) {
+            showAlert('No data to export!', 'warning');
+            return;
+        }
+
+        // Prepare data for Excel
+        const worksheetData = [
+            ['Date', 'Expense Name', 'Full Amount', 'Your Portion', 'Type', 'Running Total']
+        ];
+
+        billsData.forEach(bill => {
+            worksheetData.push([
+                bill.date,
+                bill.name,
+                bill.fullAmount,
+                bill.yourPortion,
+                bill.type,
+                bill.runningTotal
+            ]);
+        });
+
+        // Add totals row
+        const totalPortion = billsData.reduce((sum, b) => sum + b.yourPortion, 0);
+        const finalTotal = runningBalance + totalPortion;
+        worksheetData.push([
+            'TOTALS',
+            '',
+            billsData.reduce((sum, b) => sum + b.fullAmount, 0),
+            totalPortion,
+            'All Types',
+            finalTotal
+        ]);
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+        
+        // Add some styling to the header row
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const address = XLSX.utils.encode_cell({ r: 0, c: C });
+            if (!ws[address]) continue;
+            ws[address].s = {
+                font: { bold: true },
+                fill: { fgColor: { rgb: "CCCCCC" } }
+            };
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, "BillShare Data");
+        
+        // Generate filename with current date
+        const today = new Date();
+        const filename = `billshare-data-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.xlsx`;
+        
+        XLSX.writeFile(wb, filename);
+        showAlert('Data-only Excel file downloaded!', 'success');
+    }
+
+    function downloadWithFormulas() {
+        if (billsData.length === 0) {
+            showAlert('No data to export!', 'warning');
+            return;
+        }
+
+        // Create a new workbook
+        const wb = XLSX.utils.book_new();
+        
+        // Create the main data sheet with formulas
+        const worksheetData = [
+            ['BillShare - Roommate Expense Tracker', '', '', '', '', ''],
+            ['Starting Balance:', runningBalance, '', '', '', ''],
+            ['', '', '', '', '', ''],
+            ['Date', 'Expense Name', 'Full Amount', 'Bill Type', 'Your Portion', 'Running Total']
+        ];
+
+        // Add data rows with formulas
+        billsData.forEach((bill, index) => {
+            const rowNum = index + 5; // Starting from row 5 (0-indexed)
+            let portionFormula;
+            
+            switch(bill.type) {
+                case 'split':
+                    portionFormula = `=C${rowNum}/2`;
+                    break;
+                case 'full':
+                    portionFormula = `=C${rowNum}`;
+                    break;
+                case 'deduction':
+                    portionFormula = `=-C${rowNum}`;
+                    break;
+                default:
+                    portionFormula = bill.yourPortion;
+            }
+
+            const runningTotalFormula = index === 0 
+                ? `=$B$2+E${rowNum}` 
+                : `=F${rowNum - 1}+E${rowNum}`;
+
+            worksheetData.push([
+                bill.date,
+                bill.name,
+                bill.fullAmount,
+                bill.type.charAt(0).toUpperCase() + bill.type.slice(1),
+                portionFormula,
+                runningTotalFormula
+            ]);
+        });
+
+        // Add summary section
+        const lastDataRow = billsData.length + 4;
+        worksheetData.push(['', '', '', '', '', '']);
+        worksheetData.push(['SUMMARY', '', '', '', '', '']);
+        worksheetData.push(['Split Bills Total:', '', '', '', `=SUMIF(D5:D${lastDataRow},"Split",E5:E${lastDataRow})`, '']);
+        worksheetData.push(['Full Bills Total:', '', '', '', `=SUMIF(D5:D${lastDataRow},"Full",E5:E${lastDataRow})`, '']);
+        worksheetData.push(['Deductions Total:', '', '', '', `=ABS(SUMIF(D5:D${lastDataRow},"Deduction",E5:E${lastDataRow}))`, '']);
+        worksheetData.push(['Net Amount:', '', '', '', `=SUM(E5:E${lastDataRow})`, '']);
+        worksheetData.push(['Final Balance:', '', '', '', '', `=F${lastDataRow}`]);
+
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 12 }, // Date
+            { wch: 25 }, // Expense Name
+            { wch: 12 }, // Full Amount
+            { wch: 12 }, // Bill Type
+            { wch: 12 }, // Your Portion
+            { wch: 15 }  // Running Total
+        ];
+
+        // Style the header
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        
+        // Style main title (A1)
+        if (ws['A1']) {
+            ws['A1'].s = {
+                font: { bold: true, sz: 16, color: { rgb: "2c3e50" } },
+                fill: { fgColor: { rgb: "ECF0F1" } }
+            };
+        }
+
+        // Style starting balance (A2:B2)
+        if (ws['A2']) {
+            ws['A2'].s = { font: { bold: true }, fill: { fgColor: { rgb: "D5DBDB" } } };
+        }
+        if (ws['B2']) {
+            ws['B2'].s = { font: { bold: true }, fill: { fgColor: { rgb: "D5DBDB" } }, numFmt: '$#,##0.00' };
+        }
+
+        // Style column headers (row 4)
+        for (let C = 0; C <= 5; ++C) {
+            const address = XLSX.utils.encode_cell({ r: 3, c: C });
+            if (ws[address]) {
+                ws[address].s = {
+                    font: { bold: true, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "2980B9" } },
+                    alignment: { horizontal: "center" }
+                };
             }
         }
 
-        function saveToLocalStorage
+        // Style data cells with number formatting
+        for (let R = 4; R < 4 + billsData.length; ++R) {
+            // Date column (A)
+            const dateAddr = XLSX.utils.encode_cell({ r: R, c: 0 });
+            if (ws[dateAddr]) {
+                ws[dateAddr].s = { numFmt: 'mm/dd/yyyy' };
+            }
+            
+            // Full Amount (C)
+            const fullAmtAddr = XLSX.utils.encode_cell({ r: R, c: 2 });
+            if (ws[fullAmtAddr]) {
+                ws[fullAmtAddr].s = { numFmt: '$#,##0.00' };
+            }
+            
+            // Your Portion (E)
+            const portionAddr = XLSX.utils.encode_cell({ r: R, c: 4 });
+            if (ws[portionAddr]) {
+                ws[portionAddr].s = { numFmt: '$#,##0.00' };
+            }
+            
+            // Running Total (F)
+            const runningAddr = XLSX.utils.encode_cell({ r: R, c: 5 });
+            if (ws[runningAddr]) {
+                ws[runningAddr].s = { 
+                    numFmt: '$#,##0.00',
+                    font: { bold: true },
+                    fill: { fgColor: { rgb: "F8F9FA" } }
+                };
+            }
+        }
+
+        // Style summary section
+        const summaryStartRow = lastDataRow + 2;
+        for (let R = summaryStartRow; R <= summaryStartRow + 6; ++R) {
+            // Summary labels (column A)
+            const labelAddr = XLSX.utils.encode_cell({ r: R, c: 0 });
+            if (ws[labelAddr]) {
+                ws[labelAddr].s = { font: { bold: true } };
+            }
+            
+            // Summary values (columns E and F)
+            const valueAddr = XLSX.utils.encode_cell({ r: R, c: 4 });
+            const finalAddr = XLSX.utils.encode_cell({ r: R, c: 5 });
+            
+            if (ws[valueAddr]) {
+                ws[valueAddr].s = { 
+                    numFmt: '$#,##0.00',
+                    font: { bold: true },
+                    fill: { fgColor: { rgb: "E8F5E8" } }
+                };
+            }
+            
+            if (ws[finalAddr]) {
+                ws[finalAddr].s = { 
+                    numFmt: '$#,##0.00',
+                    font: { bold: true },
+                    fill: { fgColor: { rgb: "FFE6E6" } }
+                };
+            }
+        }
+
+        // Merge title cell
+        ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+
+        // Add the worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, "BillShare Tracker");
+
+        // Create a second sheet with monthly summary
+        const monthlyData = createMonthlySheet();
+        if (monthlyData.length > 1) {
+            const monthlyWS = XLSX.utils.aoa_to_sheet(monthlyData);
+            
+            // Style monthly sheet
+            monthlyWS['!cols'] = [
+                { wch: 15 }, // Month
+                { wch: 12 }, // Added
+                { wch: 12 }, // Deducted
+                { wch: 12 }, // Net
+                { wch: 15 }  // Running Total
+            ];
+
+            // Style headers
+            for (let C = 0; C <= 4; ++C) {
+                const address = XLSX.utils.encode_cell({ r: 0, c: C });
+                if (monthlyWS[address]) {
+                    monthlyWS[address].s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "27AE60" } },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+            }
+
+            // Style data with currency formatting
+            for (let R = 1; R < monthlyData.length; ++R) {
+                for (let C = 1; C <= 4; ++C) {
+                    const address = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (monthlyWS[address]) {
+                        monthlyWS[address].s = { numFmt: '$#,##0.00' };
+                    }
+                }
+            }
+
+            XLSX.utils.book_append_sheet(wb, monthlyWS, "Monthly Summary");
+        }
+
+        // Generate filename
+        const today = new Date();
+        const filename = `billshare-tracker-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.xlsx`;
+        
+        XLSX.writeFile(wb, filename);
+        showAlert('📊 Formula-enabled BillShare tracker downloaded!', 'success');
+    }
+
+    function createMonthlySheet() {
+        const monthlyData = {};
+        
+        // Group bills by month
+        billsData.forEach(bill => {
+            const date = new Date(bill.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    month: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+                    added: 0,
+                    deducted: 0,
+                    net: 0,
+                    runningTotal: 0
+                };
+            }
+            
+            if (bill.yourPortion > 0) {
+                monthlyData[monthKey].added += bill.yourPortion;
+            } else {
+                monthlyData[monthKey].deducted += Math.abs(bill.yourPortion);
+            }
+            
+            monthlyData[monthKey].net = monthlyData[monthKey].added - monthlyData[monthKey].deducted;
+        });
+
+        // Calculate running totals
+        let running = runningBalance;
+        Object.keys(monthlyData).sort().forEach(key => {
+            running += monthlyData[key].net;
+            monthlyData[key].runningTotal = running;
+        });
+
+        // Convert to array format
+        const result = [
+            ['Month', 'Bills Added', 'Deductions', 'Net Amount', 'Running Total']
+        ];
+
+        Object.keys(monthlyData).sort().forEach(key => {
+            const data = monthlyData[key];
+            result.push([
+                data.month,
+                data.added,
+                data.deducted,
+                data.net,
+                data.runningTotal
+            ]);
+        });
+
+        return result;
+    }
+
+    // Event listeners
+    function initializeEventListeners() {
+        // Tab buttons
+        document.getElementById('bills-tab-btn').addEventListener('click', () => switchTab('bills'));
+        document.getElementById('dashboard-tab-btn').addEventListener('click', () => switchTab('dashboard'));
+        document.getElementById('monthly-tab-btn').addEventListener('click', () => switchTab('monthly'));
+
+        // Action buttons
+        document.getElementById('add-entry-btn').addEventListener('click', addEntry);
+        document.getElementById('clear-all-btn').addEventListener('click', clearAllData);
+        document.getElementById('download-excel-btn').addEventListener('click', downloadSpreadsheet);
+        document.getElementById('download-formula-btn').addEventListener('click', downloadWithFormulas);
+
+        // Form submission on Enter key
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.closest('.manual-entry')) {
+                addEntry();
+            }
+        });
+
+        // Set today's date as default
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('entryDate').value = today;
+    }
+
+    // Initialize the application
+    function init() {
+        // Load data from localStorage, or use initial data if none exists
+        const savedData = loadFromLocalStorage();
+        billsData = savedData.length > 0 ? savedData : [...initialData];
+        
+        // Calculate totals and update displays
+        calculateRunningTotals();
+        updateDisplay();
+        updateDashboard();
+        updateMonthlyView();
+        
+        // Initialize event listeners
+        initializeEventListeners();
+        
+        // Show welcome message
+        if (billsData.length === 0) {
+            showAlert('💰 Welcome to BillShare! Add your first bill entry to get started.', 'success');
+        } else {
+            showAlert(`💰 BillShare loaded with ${billsData.length} bill entries!`, 'success');
+        }
+    }
+
+    // Start the application when the page loads
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

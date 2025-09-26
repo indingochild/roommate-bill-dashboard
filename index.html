@@ -28,6 +28,14 @@
         // Make Firebase available globally
         window.db = db;
         window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDocs, query, orderBy };
+        
+        // Signal that Firebase is ready
+        window.firebaseReady = true;
+        
+        // Initialize the app after Firebase is loaded
+        if (window.initializeApp) {
+            window.initializeApp();
+        }
     </script>
     
     <style>
@@ -381,7 +389,7 @@
         </div>
 
         <div class="debt-banner" id="debtBanner">
-            Current Amount Owed: $18,318.41
+            Current Amount Owed: Loading...
         </div>
 
         <div class="tabs">
@@ -451,7 +459,7 @@
                     <h3>💰 Debt Overview</h3>
                     <div class="metric">
                         <span class="metric-label">Total Amount Owed:</span>
-                        <span class="metric-value debt-amount" id="totalOwed">$18,318.41</span>
+                        <span class="metric-value debt-amount" id="totalOwed">Loading...</span>
                     </div>
                     <div class="metric">
                         <span class="metric-label">Split Bills Total:</span>
@@ -539,97 +547,536 @@
         let runningBalance = 12843; // Starting balance from January
         let unsubscribe = null;
 
-        // Your actual bill data with correct calculations
+        // Your actual bill data with correct calculations - Updated to 2025 and fixed Verizon
         const initialData = [
             // February
-            { date: '2024-02-01', name: 'Mortgage', fullAmount: 641, yourPortion: 320.50, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Spectrum', fullAmount: 164, yourPortion: 82.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Illuminating CO', fullAmount: 146, yourPortion: 73.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Kimble', fullAmount: 74.25, yourPortion: 37.13, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Columbia Gas', fullAmount: 66, yourPortion: 33.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Food', fullAmount: 128, yourPortion: 64.00, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Misc', fullAmount: 63, yourPortion: 31.50, type: 'split', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Loan', fullAmount: 128, yourPortion: 128.00, type: 'full', runningTotal: 0 },
-            { date: '2024-02-01', name: 'Verizon', fullAmount: 243, yourPortion: 243.00, type: 'full', runningTotal: 0 },
-            { date: '2024-02-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
-            { date: '2024-02-15', name: 'Meals Deduct', fullAmount: 600, yourPortion: -600.00, type: 'deduction', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Mortgage', fullAmount: 641, yourPortion: 320.50, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Spectrum', fullAmount: 164, yourPortion: 82.00, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Illuminating CO', fullAmount: 146, yourPortion: 73.00, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Kimble', fullAmount: 74.25, yourPortion: 37.13, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Columbia Gas', fullAmount: 66, yourPortion: 33.00, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Food', fullAmount: 128, yourPortion: 64.00, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Misc', fullAmount: 63, yourPortion: 31.50, type: 'split', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Loan', fullAmount: 128, yourPortion: 128.00, type: 'full', runningTotal: 0 },
+            { date: '2025-02-01', name: 'Verizon', fullAmount: 243, yourPortion: 243.00, type: 'full', runningTotal: 0 }, // Fixed to 'full'
+            { date: '2025-02-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
+            { date: '2025-02-15', name: 'Meals Deduct', fullAmount: 600, yourPortion: -600.00, type: 'deduction', runningTotal: 0 },
             
             // March
-            { date: '2024-03-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Illuminating CO', fullAmount: 136.52, yourPortion: 68.26, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Verizon', fullAmount: 152.71, yourPortion: 76.36, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Water', fullAmount: 119.58, yourPortion: 59.79, type: 'split', runningTotal: 0 },
-            { date: '2024-03-01', name: 'Food', fullAmount: 167, yourPortion: 83.50, type: 'split', runningTotal: 0 },
-            { date: '2024-03-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
+            { date: '2025-03-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
+            { date: '2025-03-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
+            { date: '2025-03-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
+            { date: '2025-03-01', name: 'Illuminating CO', fullAmount: 136.52, yourPortion: 68.26, type: 'split', runningTotal: 0 },
+            { date: '2025-03-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
+            { date: '2025-03-01', name: 'Verizon', fullAmount: 152.71, yourPortion: 152.71, type: 'full', runningTotal: 0 }, // Fixed to 'full'
+            { date: '2025-03-01', name: 'Water', fullAmount: 119.58, yourPortion: 59.79, type: 'split', runningTotal: 0 },
+            { date: '2025-03-01', name: 'Food', fullAmount: 167, yourPortion: 83.50, type: 'split', runningTotal: 0 },
+            { date: '2025-03-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
             
             // April
-            { date: '2024-04-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Illuminating CO', fullAmount: 97.74, yourPortion: 48.87, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-04-01', name: 'Food', fullAmount: 472.35, yourPortion: 236.18, type: 'split', runningTotal: 0 },
+            { date: '2025-04-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
+            { date: '2025-04-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
+            { date: '2025-04-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
+            { date: '2025-04-01', name: 'Illuminating CO', fullAmount: 97.74, yourPortion: 48.87, type: 'split', runningTotal: 0 },
+            { date: '2025-04-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
+            { date: '2025-04-01', name: 'Food', fullAmount: 472.35, yourPortion: 236.18, type: 'split', runningTotal: 0 },
             
             // May
-            { date: '2024-05-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Illuminating CO', fullAmount: 114.03, yourPortion: 57.02, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Verizon', fullAmount: 152.33, yourPortion: 76.17, type: 'split', runningTotal: 0 },
-            { date: '2024-05-01', name: 'Food', fullAmount: 518, yourPortion: 259.00, type: 'split', runningTotal: 0 },
+            { date: '2025-05-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
+            { date: '2025-05-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
+            { date: '2025-05-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
+            { date: '2025-05-01', name: 'Illuminating CO', fullAmount: 114.03, yourPortion: 57.02, type: 'split', runningTotal: 0 },
+            { date: '2025-05-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
+            { date: '2025-05-01', name: 'Verizon', fullAmount: 152.33, yourPortion: 152.33, type: 'full', runningTotal: 0 }, // Fixed to 'full'
+            { date: '2025-05-01', name: 'Food', fullAmount: 518, yourPortion: 259.00, type: 'split', runningTotal: 0 },
             
             // June
-            { date: '2024-06-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Kimble', fullAmount: 73.56, yourPortion: 36.78, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Verizon', fullAmount: 152.77, yourPortion: 76.39, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Food', fullAmount: 360, yourPortion: 180.00, type: 'split', runningTotal: 0 },
-            { date: '2024-06-01', name: 'Misc', fullAmount: 85.88, yourPortion: 42.94, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'Kimble', fullAmount: 73.56, yourPortion: 36.78, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'Verizon', fullAmount: 152.77, yourPortion: 152.77, type: 'full', runningTotal: 0 }, // Fixed to 'full'
+            { date: '2025-06-01', name: 'Food', fullAmount: 360, yourPortion: 180.00, type: 'split', runningTotal: 0 },
+            { date: '2025-06-01', name: 'Misc', fullAmount: 85.88, yourPortion: 42.94, type: 'split', runningTotal: 0 },
             
             // July
-            { date: '2024-07-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Columbia Gas', fullAmount: 86.4, yourPortion: 43.20, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Verizon', fullAmount: 153, yourPortion: 76.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Water', fullAmount: 109.88, yourPortion: 54.94, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Food', fullAmount: 427, yourPortion: 213.50, type: 'split', runningTotal: 0 },
-            { date: '2024-07-01', name: 'Loan', fullAmount: 400, yourPortion: 400.00, type: 'full', runningTotal: 0 },
+            { date: '2025-07-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
+            { date: '2025-07-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
+            { date: '2025-07-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
+            { date: '2025-07-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
+            { date: '2025-07-01', name: 'Columbia Gas', fullAmount: 86.4, yourPortion: 43.20, type: 'split', runningTotal: 0 },
+            { date: '2025-07-01', name: 'Verizon', fullAmount: 153, yourPortion: 153.00, type: 'full', runningTotal: 0 }, // Fixed to 'full'
+            { date: '2025-07-01', name: 'Water', fullAmount: 109.88, yourPortion: 54.94, type: 'split', runningTotal: 0 },
+            { date: '2025-07-01', name: 'Food', fullAmount: 427, yourPortion: 213.50, type: 'split', runningTotal: 0 },
+            { date: '2025-07-01', name: 'Loan', fullAmount: 400, yourPortion: 400.00, type: 'full', runningTotal: 0 },
             
             // August
-            { date: '2024-08-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Illuminating CO', fullAmount: 90.44, yourPortion: 45.22, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Columbia Gas', fullAmount: 89, yourPortion: 44.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Verizon', fullAmount: 153, yourPortion: 76.50, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Food', fullAmount: 308, yourPortion: 154.00, type: 'split', runningTotal: 0 },
-            { date: '2024-08-01', name: 'Loan', fullAmount: 225, yourPortion: 225.00, type: 'full', runningTotal: 0 }
+            { date: '2025-08-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
+            { date: '2025-08-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
+            { date: '2025-08-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
+            { date: '2025-08-01', name: 'Illuminating CO', fullAmount: 90.44, yourPortion: 45.22, type: 'split', runningTotal: 0 },
+            { date: '2025-08-01', name: 'Columbia Gas', fullAmount: 89, yourPortion: 44.50, type: 'split', runningTotal: 0 },
+            { date: '2025-08-01', name: 'Verizon', fullAmount: 153, yourPortion: 153.00, type: 'full', runningTotal: 0 }, // Fixed to 'full'
+            { date: '2025-08-01', name: 'Food', fullAmount: 308, yourPortion: 154.00, type: 'split', runningTotal: 0 },
+            { date: '2025-08-01', name: 'Loan', fullAmount: 225, yourPortion: 225.00, type: 'full', runningTotal: 0 }
         ];
 
-        window.onload = function() {
+        // Initialize app function
+        window.initializeApp = function() {
             // Set default date to today
             document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
             
-            // Connect to Firebase database
+            // Load initial data with unique IDs
+            billsData = initialData.map(item => ({ 
+                ...item, 
+                id: `${item.date}-${item.name}-${Math.random()}`,
+                timestamp: new Date(item.date).getTime()
+            }));
+            
+            // Calculate and display
+            calculateRunningTotals();
+            updateDisplay();
+            updateDashboard();
+            updateMonthlyView();
+            
+            // Try to connect to Firebase
             connectToDatabase();
         };
 
+        // Tab switching function
+        function switchTab(tabName) {
+            // Remove active class from all tabs and contents
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab
+            const clickedTab = Array.from(tabs).find(tab => 
+                tab.textContent.toLowerCase().includes(tabName.toLowerCase()) ||
+                (tabName === 'bills' && tab.textContent.includes('Bills Tracker')) ||
+                (tabName === 'dashboard' && tab.textContent.includes('Dashboard')) ||
+                (tabName === 'monthly' && tab.textContent.includes('Monthly View'))
+            );
+            
+            if (clickedTab) {
+                clickedTab.classList.add('active');
+            }
+            
+            // Show selected content
+            const contentId = `${tabName}-tab`;
+            const content = document.getElementById(contentId);
+            if (content) {
+                content.classList.add('active');
+            }
+            
+            // Update dashboard when switching to it
+            if (tabName === 'dashboard') {
+                updateDashboard();
+            } else if (tabName === 'monthly') {
+                updateMonthlyView();
+            }
+        }
+
         function connectToDatabase() {
+            if (!window.firestore || !window.db) {
+                updateStatus('🔴 Firebase not loaded');
+                return;
+            }
+
             try {
                 const { onSnapshot, collection, query, orderBy } = window.firestore;
                 
-                // Listen for real-time updates to the bills collection
-                const q = query(
+                // Create query for bills collection
+                const billsQuery = query(
                     collection(window.db, 'bills'),
                     orderBy('timestamp', 'asc')
                 );
+                
+                // Listen for real-time updates
+                unsubscribe = onSnapshot(billsQuery, 
+                    (snapshot) => {
+                        if (!snapshot.empty) {
+                            // Update from Firebase
+                            billsData = [];
+                            snapshot.forEach((doc) => {
+                                const data = doc.data();
+                                billsData.push({
+                                    ...data,
+                                    id: doc.id
+                                });
+                            });
+                            
+                            calculateRunningTotals();
+                            updateDisplay();
+                            updateDashboard();
+                            updateMonthlyView();
+                        }
+                        updateStatus('🟢 Connected - Real-time sync active');
+                    },
+                    (error) => {
+                        console.error('Firebase error:', error);
+                        updateStatus('🟡 Working offline - Data saved locally');
+                    }
+                );
+                
+                // Initial sync of local data to Firebase
+                syncLocalToFirebase();
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                updateStatus('🟡 Working offline - Data saved locally');
+            }
+        }
+
+        async function syncLocalToFirebase() {
+            if (!window.firestore || !window.db) return;
+            
+            try {
+                const { collection, getDocs, setDoc, doc } = window.firestore;
+                
+                // Check if collection is empty
+                const snapshot = await getDocs(collection(window.db, 'bills'));
+                
+                if (snapshot.empty && billsData.length > 0) {
+                    // Upload initial data to Firebase
+                    for (const bill of billsData) {
+                        await setDoc(doc(window.db, 'bills', bill.id), {
+                            ...bill,
+                            timestamp: bill.timestamp || new Date(bill.date).getTime()
+                        });
+                    }
+                    console.log('Initial data synced to Firebase');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+            }
+        }
+
+        function calculateRunningTotals() {
+            let total = runningBalance;
+            
+            // Sort by date
+            billsData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Calculate running totals
+            billsData.forEach(entry => {
+                total += entry.yourPortion;
+                entry.runningTotal = total;
+            });
+        }
+
+        function updateDisplay() {
+            const tbody = document.getElementById('billsTableBody');
+            tbody.innerHTML = '';
+            
+            billsData.forEach(entry => {
+                const row = document.createElement('tr');
+                
+                // Add class based on type
+                if (entry.type === 'split') row.classList.add('split-bill');
+                else if (entry.type === 'full') row.classList.add('full-bill');
+                else if (entry.type === 'deduction') row.classList.add('deduction');
+                
+                row.innerHTML = `
+                    <td>${formatDate(entry.date)}</td>
+                    <td>${entry.name}</td>
+                    <td class="currency">${entry.fullAmount.toFixed(2)}</td>
+                    <td class="currency">${entry.yourPortion >= 0 ? ' : '-}${Math.abs(entry.yourPortion).toFixed(2)}</td>
+                    <td>${entry.type.charAt(0).toUpperCase() + entry.type.slice(1)}</td>
+                    <td class="currency">${entry.runningTotal.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteEntry('${entry.id}')" style="padding: 5px 10px; font-size: 0.9rem;">Delete</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            // Update debt banner
+            const currentTotal = billsData.length > 0 ? 
+                billsData[billsData.length - 1].runningTotal : runningBalance;
+            document.getElementById('debtBanner').textContent = 
+                `Current Amount Owed: ${currentTotal.toFixed(2)}`;
+            document.getElementById('totalOwed').textContent = `${currentTotal.toFixed(2)}`;
+        }
+
+        function updateDashboard() {
+            let splitTotal = 0, fullTotal = 0, deductionTotal = 0;
+            let splitCount = 0, fullCount = 0, deductionCount = 0;
+            
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            let monthAdded = 0, monthDeducted = 0;
+            
+            billsData.forEach(entry => {
+                const entryDate = new Date(entry.date);
+                const isCurrentMonth = entryDate.getMonth() === currentMonth && 
+                                       entryDate.getFullYear() === currentYear;
+                
+                if (entry.type === 'split') {
+                    splitTotal += entry.yourPortion;
+                    splitCount++;
+                    if (isCurrentMonth) monthAdded += entry.yourPortion;
+                } else if (entry.type === 'full') {
+                    fullTotal += entry.yourPortion;
+                    fullCount++;
+                    if (isCurrentMonth) monthAdded += entry.yourPortion;
+                } else if (entry.type === 'deduction') {
+                    deductionTotal += Math.abs(entry.yourPortion);
+                    deductionCount++;
+                    if (isCurrentMonth) monthDeducted += Math.abs(entry.yourPortion);
+                }
+            });
+            
+            // Update metrics
+            document.getElementById('splitBillsTotal').textContent = `${splitTotal.toFixed(2)}`;
+            document.getElementById('fullBillsTotal').textContent = `${fullTotal.toFixed(2)}`;
+            document.getElementById('deductionsTotal').textContent = `${deductionTotal.toFixed(2)}`;
+            
+            document.getElementById('splitBillsCount').textContent = splitCount;
+            document.getElementById('fullBillsCount').textContent = fullCount;
+            document.getElementById('deductionsCount').textContent = deductionCount;
+            document.getElementById('totalEntries').textContent = billsData.length;
+            
+            document.getElementById('monthAdded').textContent = `${monthAdded.toFixed(2)}`;
+            document.getElementById('monthDeducted').textContent = `${monthDeducted.toFixed(2)}`;
+            document.getElementById('monthNet').textContent = `${(monthAdded - monthDeducted).toFixed(2)}`;
+            
+            // Update recent activity
+            const recentActivity = document.getElementById('recentActivity');
+            const recent = billsData.slice(-5).reverse();
+            if (recent.length > 0) {
+                recentActivity.innerHTML = recent.map(entry => 
+                    `<div style="padding: 5px 0; border-bottom: 1px solid #f1f3f4;">
+                        <strong>${formatDate(entry.date)}</strong>: ${entry.name} 
+                        (${entry.yourPortion >= 0 ? '+' : ''}${entry.yourPortion.toFixed(2)})
+                    </div>`
+                ).join('');
+            }
+        }
+
+        function updateMonthlyView() {
+            const monthlyData = {};
+            let runningTotal = runningBalance;
+            
+            billsData.forEach(entry => {
+                const date = new Date(entry.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = {
+                        added: 0,
+                        deducted: 0,
+                        entries: []
+                    };
+                }
+                
+                if (entry.type === 'deduction') {
+                    monthlyData[monthKey].deducted += Math.abs(entry.yourPortion);
+                } else {
+                    monthlyData[monthKey].added += entry.yourPortion;
+                }
+                
+                monthlyData[monthKey].entries.push(entry);
+            });
+            
+            const tbody = document.getElementById('monthlyTableBody');
+            tbody.innerHTML = '';
+            
+            Object.keys(monthlyData).sort().forEach(monthKey => {
+                const data = monthlyData[monthKey];
+                const net = data.added - data.deducted;
+                runningTotal += net;
+                
+                const row = document.createElement('tr');
+                const [year, month] = monthKey.split('-');
+                const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                
+                row.innerHTML = `
+                    <td>${monthName}</td>
+                    <td class="currency">${data.added.toFixed(2)}</td>
+                    <td class="currency">${data.deducted.toFixed(2)}</td>
+                    <td class="currency">${net >= 0 ? ' : '-}${Math.abs(net).toFixed(2)}</td>
+                    <td class="currency">${runningTotal.toFixed(2)}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+        }
+
+        function updateStatus(message) {
+            document.getElementById('realtimeStatus').innerHTML = `
+                <div class="status-indicator"></div>
+                <span>${message}</span>
+            `;
+        }
+
+        async function addEntry() {
+            const date = document.getElementById('entryDate').value;
+            const name = document.getElementById('expenseName').value;
+            const fullAmount = parseFloat(document.getElementById('expenseValue').value);
+            const type = document.getElementById('billType').value;
+            
+            if (!date || !name || !fullAmount || !type) {
+                showAlert('Please fill in all fields', 'warning');
+                return;
+            }
+            
+            let yourPortion;
+            if (type === 'split') {
+                yourPortion = fullAmount / 2;
+            } else if (type === 'full') {
+                yourPortion = fullAmount;
+            } else if (type === 'deduction') {
+                yourPortion = -fullAmount;
+            }
+            
+            const newEntry = {
+                id: `${date}-${name}-${Date.now()}`,
+                date,
+                name,
+                fullAmount,
+                yourPortion,
+                type,
+                timestamp: new Date(date).getTime(),
+                runningTotal: 0
+            };
+            
+            billsData.push(newEntry);
+            
+            // Save to Firebase if connected
+            if (window.firestore && window.db) {
+                try {
+                    const { setDoc, doc } = window.firestore;
+                    await setDoc(doc(window.db, 'bills', newEntry.id), newEntry);
+                } catch (error) {
+                    console.error('Error saving to Firebase:', error);
+                }
+            }
+            
+            calculateRunningTotals();
+            updateDisplay();
+            updateDashboard();
+            updateMonthlyView();
+            
+            // Clear form
+            document.getElementById('expenseName').value = '';
+            document.getElementById('expenseValue').value = '';
+            document.getElementById('billType').value = '';
+            
+            showAlert('Entry added successfully!', 'success');
+        }
+
+        async function deleteEntry(id) {
+            if (!confirm('Are you sure you want to delete this entry?')) return;
+            
+            billsData = billsData.filter(entry => entry.id !== id);
+            
+            // Delete from Firebase if connected
+            if (window.firestore && window.db) {
+                try {
+                    const { deleteDoc, doc } = window.firestore;
+                    await deleteDoc(doc(window.db, 'bills', id));
+                } catch (error) {
+                    console.error('Error deleting from Firebase:', error);
+                }
+            }
+            
+            calculateRunningTotals();
+            updateDisplay();
+            updateDashboard();
+            updateMonthlyView();
+            
+            showAlert('Entry deleted successfully!', 'success');
+        }
+
+        async function clearAllData() {
+            if (!confirm('Are you sure you want to clear ALL data? This cannot be undone!')) return;
+            
+            billsData = [];
+            
+            // Clear Firebase collection if connected
+            if (window.firestore && window.db) {
+                try {
+                    const { getDocs, collection, deleteDoc } = window.firestore;
+                    const snapshot = await getDocs(collection(window.db, 'bills'));
+                    
+                    const deletePromises = [];
+                    snapshot.forEach((doc) => {
+                        deletePromises.push(deleteDoc(doc.ref));
+                    });
+                    
+                    await Promise.all(deletePromises);
+                } catch (error) {
+                    console.error('Error clearing Firebase:', error);
+                }
+            }
+            
+            updateDisplay();
+            updateDashboard();
+            updateMonthlyView();
+            
+            showAlert('All data cleared!', 'success');
+        }
+
+        function downloadSpreadsheet() {
+            const ws_data = [
+                ['Date', 'Expense Name', 'Full Amount', 'Your Portion', 'Type', 'Running Total']
+            ];
+            
+            billsData.forEach(entry => {
+                ws_data.push([
+                    entry.date,
+                    entry.name,
+                    entry.fullAmount,
+                    entry.yourPortion,
+                    entry.type,
+                    entry.runningTotal
+                ]);
+            });
+            
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Bills');
+            
+            XLSX.writeFile(wb, `debt_tracker_${new Date().toISOString().split('T')[0]}.xlsx`);
+            
+            showAlert('Spreadsheet downloaded!', 'success');
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // If Firebase is already loaded, initialize
+            if (window.firebaseReady) {
+                window.initializeApp();
+            }
+            // Otherwise, initializeApp will be called when Firebase loads
+        });
+    </script>
+</body>
+</html>

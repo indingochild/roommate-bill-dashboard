@@ -6,38 +6,6 @@
     <title>Real-Time Debt Tracker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        
-        // Your Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCv8MTdmyzuL4Pkg2OWu5EeNVqal0mNZBo",
-            authDomain: "real-time-debt-tracker.firebaseapp.com",
-            projectId: "real-time-debt-tracker",
-            storageBucket: "real-time-debt-tracker.firebasestorage.app",
-            messagingSenderId: "113439052037",
-            appId: "1:113439052037:web:54ea7d949ea8020862e76c"
-        };
-        
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        
-        // Make Firebase available globally
-        window.db = db;
-        window.firestore = { collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDocs, query, orderBy };
-        
-        // Signal that Firebase is ready
-        window.firebaseReady = true;
-        
-        // Initialize the app after Firebase is loaded
-        if (window.initializeApp) {
-            window.initializeApp();
-        }
-    </script>
-    
     <style>
         * {
             margin: 0;
@@ -274,11 +242,6 @@
             font-weight: 600;
         }
 
-        .totals-row {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            font-weight: 700;
-        }
-
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -324,15 +287,6 @@
             font-size: 1.5rem !important;
         }
 
-        .new-entry {
-            animation: highlight 3s ease-in-out;
-        }
-
-        @keyframes highlight {
-            0% { background-color: #fff3cd; }
-            100% { background-color: inherit; }
-        }
-
         .alert {
             padding: 15px;
             border-radius: 8px;
@@ -344,6 +298,16 @@
             z-index: 9999;
             min-width: 300px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
         }
 
         .alert-success {
@@ -380,16 +344,16 @@
     <div class="container">
         <div class="header">
             <h1>💰 Real-Time Debt Tracker</h1>
-            <p>Instant sync across all your devices</p>
+            <p>Track and manage your shared expenses</p>
         </div>
 
         <div class="realtime-status" id="realtimeStatus">
             <div class="status-indicator"></div>
-            <span>🔴 Connecting to database...</span>
+            <span>🟢 System Ready</span>
         </div>
 
         <div class="debt-banner" id="debtBanner">
-            Current Amount Owed: Loading...
+            Calculating...
         </div>
 
         <div class="tabs">
@@ -398,7 +362,7 @@
             <button class="tab" onclick="switchTab('monthly')">📅 Monthly View</button>
         </div>
 
-        <div id="bills-tab" class="tab-content active">
+        <div id="bills" class="tab-content active">
             <div class="manual-entry">
                 <h3>➕ Add New Bill Entry</h3>
                 <div class="form-row">
@@ -431,7 +395,7 @@
             </div>
 
             <div class="table-container">
-                <table class="table" id="billsTable">
+                <table class="table">
                     <thead>
                         <tr>
                             <th>Date</th>
@@ -453,13 +417,13 @@
             </div>
         </div>
 
-        <div id="dashboard-tab" class="tab-content">
+        <div id="dashboard" class="tab-content">
             <div class="dashboard-grid">
                 <div class="dashboard-card">
                     <h3>💰 Debt Overview</h3>
                     <div class="metric">
                         <span class="metric-label">Total Amount Owed:</span>
-                        <span class="metric-value debt-amount" id="totalOwed">Loading...</span>
+                        <span class="metric-value debt-amount" id="totalOwed">$0.00</span>
                     </div>
                     <div class="metric">
                         <span class="metric-label">Split Bills Total:</span>
@@ -520,7 +484,7 @@
             </div>
         </div>
 
-        <div id="monthly-tab" class="tab-content">
+        <div id="monthly" class="tab-content">
             <div class="dashboard-card">
                 <h3>📅 Monthly Summary</h3>
                 <div class="table-container">
@@ -542,255 +506,189 @@
         </div>
     </div>
 
-    <script>
-        let billsData = [];
-        let runningBalance = 12843; // Starting balance from January
-        let unsubscribe = null;
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot, 
+            deleteDoc, 
+            doc, 
+            setDoc, 
+            getDocs, 
+            query, 
+            orderBy 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCv8MTdmyzuL4Pkg2OWu5EeNVqal0mNZBo",
+            authDomain: "real-time-debt-tracker.firebaseapp.com",
+            projectId: "real-time-debt-tracker",
+            storageBucket: "real-time-debt-tracker.firebasestorage.app",
+            messagingSenderId: "113439052037",
+            appId: "1:113439052037:web:54ea7d949ea8020862e76c"
+        };
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            
+            window.firebase = {
+                db,
+                collection,
+                addDoc,
+                onSnapshot,
+                deleteDoc,
+                doc,
+                setDoc,
+                getDocs,
+                query,
+                orderBy
+            };
+            
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+    </script>
 
-        // Your actual bill data with correct calculations - Updated to 2025 and fixed Verizon
-        const initialData = [
-            // February
-            { date: '2025-02-01', name: 'Mortgage', fullAmount: 641, yourPortion: 320.50, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Spectrum', fullAmount: 164, yourPortion: 82.00, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Illuminating CO', fullAmount: 146, yourPortion: 73.00, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Kimble', fullAmount: 74.25, yourPortion: 37.13, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Columbia Gas', fullAmount: 66, yourPortion: 33.00, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Food', fullAmount: 128, yourPortion: 64.00, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Misc', fullAmount: 63, yourPortion: 31.50, type: 'split', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Loan', fullAmount: 128, yourPortion: 128.00, type: 'full', runningTotal: 0 },
-            { date: '2025-02-01', name: 'Verizon', fullAmount: 243, yourPortion: 243.00, type: 'full', runningTotal: 0 }, // Fixed to 'full'
-            { date: '2025-02-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
-            { date: '2025-02-15', name: 'Meals Deduct', fullAmount: 600, yourPortion: -600.00, type: 'deduction', runningTotal: 0 },
+    <script>
+        // Global variables
+        let billsData = [];
+        const startingBalance = 12843;
+
+        // Initial data with 2025 dates and corrected Verizon entries
+        const initialBills = [
+            // February 2025
+            { date: '2025-02-01', name: 'Mortgage', fullAmount: 641, type: 'split' },
+            { date: '2025-02-01', name: 'HOA', fullAmount: 275, type: 'split' },
+            { date: '2025-02-01', name: 'Spectrum', fullAmount: 164, type: 'split' },
+            { date: '2025-02-01', name: 'Illuminating CO', fullAmount: 146, type: 'split' },
+            { date: '2025-02-01', name: 'Kimble', fullAmount: 74.25, type: 'split' },
+            { date: '2025-02-01', name: 'Columbia Gas', fullAmount: 66, type: 'split' },
+            { date: '2025-02-01', name: 'Food', fullAmount: 128, type: 'split' },
+            { date: '2025-02-01', name: 'Misc', fullAmount: 63, type: 'split' },
+            { date: '2025-02-01', name: 'Loan', fullAmount: 128, type: 'full' },
+            { date: '2025-02-01', name: 'Verizon', fullAmount: 243, type: 'full' },
+            { date: '2025-02-15', name: 'PT Deduct', fullAmount: 533.33, type: 'deduction' },
+            { date: '2025-02-15', name: 'Meals Deduct', fullAmount: 600, type: 'deduction' },
             
-            // March
-            { date: '2025-03-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2025-03-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2025-03-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2025-03-01', name: 'Illuminating CO', fullAmount: 136.52, yourPortion: 68.26, type: 'split', runningTotal: 0 },
-            { date: '2025-03-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2025-03-01', name: 'Verizon', fullAmount: 152.71, yourPortion: 152.71, type: 'full', runningTotal: 0 }, // Fixed to 'full'
-            { date: '2025-03-01', name: 'Water', fullAmount: 119.58, yourPortion: 59.79, type: 'split', runningTotal: 0 },
-            { date: '2025-03-01', name: 'Food', fullAmount: 167, yourPortion: 83.50, type: 'split', runningTotal: 0 },
-            { date: '2025-03-15', name: 'PT Deduct', fullAmount: 533.33, yourPortion: -533.33, type: 'deduction', runningTotal: 0 },
+            // March 2025
+            { date: '2025-03-01', name: 'Mortgage', fullAmount: 641.01, type: 'split' },
+            { date: '2025-03-01', name: 'HOA', fullAmount: 275, type: 'split' },
+            { date: '2025-03-01', name: 'Spectrum Internet', fullAmount: 96.59, type: 'split' },
+            { date: '2025-03-01', name: 'Illuminating CO', fullAmount: 136.52, type: 'split' },
+            { date: '2025-03-01', name: 'Columbia Gas', fullAmount: 92, type: 'split' },
+            { date: '2025-03-01', name: 'Verizon', fullAmount: 152.71, type: 'full' },
+            { date: '2025-03-01', name: 'Water', fullAmount: 119.58, type: 'split' },
+            { date: '2025-03-01', name: 'Food', fullAmount: 167, type: 'split' },
+            { date: '2025-03-15', name: 'PT Deduct', fullAmount: 533.33, type: 'deduction' },
             
-            // April
-            { date: '2025-04-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2025-04-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2025-04-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2025-04-01', name: 'Illuminating CO', fullAmount: 97.74, yourPortion: 48.87, type: 'split', runningTotal: 0 },
-            { date: '2025-04-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2025-04-01', name: 'Food', fullAmount: 472.35, yourPortion: 236.18, type: 'split', runningTotal: 0 },
+            // April 2025
+            { date: '2025-04-01', name: 'Mortgage', fullAmount: 641.01, type: 'split' },
+            { date: '2025-04-01', name: 'HOA', fullAmount: 275, type: 'split' },
+            { date: '2025-04-01', name: 'Spectrum Internet', fullAmount: 96.59, type: 'split' },
+            { date: '2025-04-01', name: 'Illuminating CO', fullAmount: 97.74, type: 'split' },
+            { date: '2025-04-01', name: 'Columbia Gas', fullAmount: 92, type: 'split' },
+            { date: '2025-04-01', name: 'Food', fullAmount: 472.35, type: 'split' },
             
-            // May
-            { date: '2025-05-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2025-05-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2025-05-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2025-05-01', name: 'Illuminating CO', fullAmount: 114.03, yourPortion: 57.02, type: 'split', runningTotal: 0 },
-            { date: '2025-05-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2025-05-01', name: 'Verizon', fullAmount: 152.33, yourPortion: 152.33, type: 'full', runningTotal: 0 }, // Fixed to 'full'
-            { date: '2025-05-01', name: 'Food', fullAmount: 518, yourPortion: 259.00, type: 'split', runningTotal: 0 },
+            // May 2025
+            { date: '2025-05-01', name: 'Mortgage', fullAmount: 641.01, type: 'split' },
+            { date: '2025-05-01', name: 'HOA', fullAmount: 275, type: 'split' },
+            { date: '2025-05-01', name: 'Spectrum Internet', fullAmount: 96.59, type: 'split' },
+            { date: '2025-05-01', name: 'Illuminating CO', fullAmount: 114.03, type: 'split' },
+            { date: '2025-05-01', name: 'Columbia Gas', fullAmount: 92, type: 'split' },
+            { date: '2025-05-01', name: 'Verizon', fullAmount: 152.33, type: 'full' },
+            { date: '2025-05-01', name: 'Food', fullAmount: 518, type: 'split' },
             
-            // June
-            { date: '2025-06-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2025-06-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2025-06-01', name: 'Spectrum Internet', fullAmount: 96.59, yourPortion: 48.30, type: 'split', runningTotal: 0 },
-            { date: '2025-06-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
-            { date: '2025-06-01', name: 'Kimble', fullAmount: 73.56, yourPortion: 36.78, type: 'split', runningTotal: 0 },
-            { date: '2025-06-01', name: 'Columbia Gas', fullAmount: 92, yourPortion: 46.00, type: 'split', runningTotal: 0 },
-            { date: '2025-06-01', name: 'Verizon', fullAmount: 152.77, yourPortion: 152.77, type: 'full', runningTotal: 0 }, // Fixed to 'full'
-            { date: '2025-06-01', name: 'Food', fullAmount: 360, yourPortion: 180.00, type: 'split', runningTotal: 0 },
-            { date: '2025-06-01', name: 'Misc', fullAmount: 85.88, yourPortion: 42.94, type: 'split', runningTotal: 0 },
+            // June 2025
+            { date: '2025-06-01', name: 'Mortgage', fullAmount: 641.01, type: 'split' },
+            { date: '2025-06-01', name: 'HOA', fullAmount: 275, type: 'split' },
+            { date: '2025-06-01', name: 'Spectrum Internet', fullAmount: 96.59, type: 'split' },
+            { date: '2025-06-01', name: 'Illuminating CO', fullAmount: 117.55, type: 'split' },
+            { date: '2025-06-01', name: 'Kimble', fullAmount: 73.56, type: 'split' },
+            { date: '2025-06-01', name: 'Columbia Gas', fullAmount: 92, type: 'split' },
+            { date: '2025-06-01', name: 'Verizon', fullAmount: 152.77, type: 'full' },
+            { date: '2025-06-01', name: 'Food', fullAmount: 360, type: 'split' },
+            { date: '2025-06-01', name: 'Misc', fullAmount: 85.88, type: 'split' },
             
-            // July
-            { date: '2025-07-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2025-07-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2025-07-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
-            { date: '2025-07-01', name: 'Illuminating CO', fullAmount: 117.55, yourPortion: 58.78, type: 'split', runningTotal: 0 },
-            { date: '2025-07-01', name: 'Columbia Gas', fullAmount: 86.4, yourPortion: 43.20, type: 'split', runningTotal: 0 },
-            { date: '2025-07-01', name: 'Verizon', fullAmount: 153, yourPortion: 153.00, type: 'full', runningTotal: 0 }, // Fixed to 'full'
-            { date: '2025-07-01', name: 'Water', fullAmount: 109.88, yourPortion: 54.94, type: 'split', runningTotal: 0 },
-            { date: '2025-07-01', name: 'Food', fullAmount: 427, yourPortion: 213.50, type: 'split', runningTotal: 0 },
-            { date: '2025-07-01', name: 'Loan', fullAmount: 400, yourPortion: 400.00, type: 'full', runningTotal: 0 },
+            // July 2025
+            { date: '2025-07-01', name: 'Mortgage', fullAmount: 641.01, type: 'split' },
+            { date: '2025-07-01', name: 'HOA', fullAmount: 275, type: 'split' },
+            { date: '2025-07-01', name: 'Spectrum Internet', fullAmount: 115, type: 'split' },
+            { date: '2025-07-01', name: 'Illuminating CO', fullAmount: 117.55, type: 'split' },
+            { date: '2025-07-01', name: 'Columbia Gas', fullAmount: 86.4, type: 'split' },
+            { date: '2025-07-01', name: 'Verizon', fullAmount: 153, type: 'full' },
+            { date: '2025-07-01', name: 'Water', fullAmount: 109.88, type: 'split' },
+            { date: '2025-07-01', name: 'Food', fullAmount: 427, type: 'split' },
+            { date: '2025-07-01', name: 'Loan', fullAmount: 400, type: 'full' },
             
-            // August
-            { date: '2025-08-01', name: 'Mortgage', fullAmount: 641.01, yourPortion: 320.51, type: 'split', runningTotal: 0 },
-            { date: '2025-08-01', name: 'HOA', fullAmount: 275, yourPortion: 137.50, type: 'split', runningTotal: 0 },
-            { date: '2025-08-01', name: 'Spectrum Internet', fullAmount: 115, yourPortion: 57.50, type: 'split', runningTotal: 0 },
-            { date: '2025-08-01', name: 'Illuminating CO', fullAmount: 90.44, yourPortion: 45.22, type: 'split', runningTotal: 0 },
-            { date: '2025-08-01', name: 'Columbia Gas', fullAmount: 89, yourPortion: 44.50, type: 'split', runningTotal: 0 },
-            { date: '2025-08-01', name: 'Verizon', fullAmount: 153, yourPortion: 153.00, type: 'full', runningTotal: 0 }, // Fixed to 'full'
-            { date: '2025-08-01', name: 'Food', fullAmount: 308, yourPortion: 154.00, type: 'split', runningTotal: 0 },
-            { date: '2025-08-01', name: 'Loan', fullAmount: 225, yourPortion: 225.00, type: 'full', runningTotal: 0 }
+            // August 2025
+            { date: '2025-08-01', name: 'Mortgage', fullAmount: 641.01, type: 'split' },
+            { date: '2025-08-01', name: 'HOA', fullAmount: 275, type: 'split' },
+            { date: '2025-08-01', name: 'Spectrum Internet', fullAmount: 115, type: 'split' },
+            { date: '2025-08-01', name: 'Illuminating CO', fullAmount: 90.44, type: 'split' },
+            { date: '2025-08-01', name: 'Columbia Gas', fullAmount: 89, type: 'split' },
+            { date: '2025-08-01', name: 'Verizon', fullAmount: 153, type: 'full' },
+            { date: '2025-08-01', name: 'Food', fullAmount: 308, type: 'split' },
+            { date: '2025-08-01', name: 'Loan', fullAmount: 225, type: 'full' }
         ];
 
-        // Initialize app function
-        window.initializeApp = function() {
-            // Set default date to today
-            document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
-            
-            // Load initial data with unique IDs
-            billsData = initialData.map(item => ({ 
-                ...item, 
-                id: `${item.date}-${item.name}-${Math.random()}`,
-                timestamp: new Date(item.date).getTime()
+        // Calculate your portion based on type
+        function calculatePortion(amount, type) {
+            if (type === 'split') return amount / 2;
+            if (type === 'full') return amount;
+            if (type === 'deduction') return -amount;
+            return 0;
+        }
+
+        // Process initial bills
+        function processInitialBills() {
+            billsData = initialBills.map((bill, index) => ({
+                ...bill,
+                id: `bill-${Date.now()}-${index}`,
+                yourPortion: calculatePortion(bill.fullAmount, bill.type),
+                runningTotal: 0
             }));
-            
-            // Calculate and display
             calculateRunningTotals();
-            updateDisplay();
-            updateDashboard();
-            updateMonthlyView();
-            
-            // Try to connect to Firebase
-            connectToDatabase();
-        };
-
-        // Tab switching function
-        function switchTab(tabName) {
-            // Remove active class from all tabs and contents
-            const tabs = document.querySelectorAll('.tab');
-            const contents = document.querySelectorAll('.tab-content');
-            
-            tabs.forEach(tab => tab.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
-            
-            // Add active class to selected tab
-            const clickedTab = Array.from(tabs).find(tab => 
-                tab.textContent.toLowerCase().includes(tabName.toLowerCase()) ||
-                (tabName === 'bills' && tab.textContent.includes('Bills Tracker')) ||
-                (tabName === 'dashboard' && tab.textContent.includes('Dashboard')) ||
-                (tabName === 'monthly' && tab.textContent.includes('Monthly View'))
-            );
-            
-            if (clickedTab) {
-                clickedTab.classList.add('active');
-            }
-            
-            // Show selected content
-            const contentId = `${tabName}-tab`;
-            const content = document.getElementById(contentId);
-            if (content) {
-                content.classList.add('active');
-            }
-            
-            // Update dashboard when switching to it
-            if (tabName === 'dashboard') {
-                updateDashboard();
-            } else if (tabName === 'monthly') {
-                updateMonthlyView();
-            }
         }
 
-        function connectToDatabase() {
-            if (!window.firestore || !window.db) {
-                updateStatus('🔴 Firebase not loaded');
-                return;
-            }
-
-            try {
-                const { onSnapshot, collection, query, orderBy } = window.firestore;
-                
-                // Create query for bills collection
-                const billsQuery = query(
-                    collection(window.db, 'bills'),
-                    orderBy('timestamp', 'asc')
-                );
-                
-                // Listen for real-time updates
-                unsubscribe = onSnapshot(billsQuery, 
-                    (snapshot) => {
-                        if (!snapshot.empty) {
-                            // Update from Firebase
-                            billsData = [];
-                            snapshot.forEach((doc) => {
-                                const data = doc.data();
-                                billsData.push({
-                                    ...data,
-                                    id: doc.id
-                                });
-                            });
-                            
-                            calculateRunningTotals();
-                            updateDisplay();
-                            updateDashboard();
-                            updateMonthlyView();
-                        }
-                        updateStatus('🟢 Connected - Real-time sync active');
-                    },
-                    (error) => {
-                        console.error('Firebase error:', error);
-                        updateStatus('🟡 Working offline - Data saved locally');
-                    }
-                );
-                
-                // Initial sync of local data to Firebase
-                syncLocalToFirebase();
-                
-            } catch (error) {
-                console.error('Connection error:', error);
-                updateStatus('🟡 Working offline - Data saved locally');
-            }
-        }
-
-        async function syncLocalToFirebase() {
-            if (!window.firestore || !window.db) return;
-            
-            try {
-                const { collection, getDocs, setDoc, doc } = window.firestore;
-                
-                // Check if collection is empty
-                const snapshot = await getDocs(collection(window.db, 'bills'));
-                
-                if (snapshot.empty && billsData.length > 0) {
-                    // Upload initial data to Firebase
-                    for (const bill of billsData) {
-                        await setDoc(doc(window.db, 'bills', bill.id), {
-                            ...bill,
-                            timestamp: bill.timestamp || new Date(bill.date).getTime()
-                        });
-                    }
-                    console.log('Initial data synced to Firebase');
-                }
-            } catch (error) {
-                console.error('Sync error:', error);
-            }
-        }
-
+        // Calculate running totals
         function calculateRunningTotals() {
-            let total = runningBalance;
-            
-            // Sort by date
+            let total = startingBalance;
             billsData.sort((a, b) => new Date(a.date) - new Date(b.date));
             
-            // Calculate running totals
-            billsData.forEach(entry => {
-                total += entry.yourPortion;
-                entry.runningTotal = total;
+            billsData.forEach(bill => {
+                total += bill.yourPortion;
+                bill.runningTotal = total;
             });
         }
 
-        function updateDisplay() {
+        // Update the bills table display
+        function updateBillsTable() {
             const tbody = document.getElementById('billsTableBody');
             tbody.innerHTML = '';
             
-            billsData.forEach(entry => {
+            billsData.forEach(bill => {
                 const row = document.createElement('tr');
                 
-                // Add class based on type
-                if (entry.type === 'split') row.classList.add('split-bill');
-                else if (entry.type === 'full') row.classList.add('full-bill');
-                else if (entry.type === 'deduction') row.classList.add('deduction');
+                // Add styling based on type
+                if (bill.type === 'split') row.classList.add('split-bill');
+                else if (bill.type === 'full') row.classList.add('full-bill');
+                else if (bill.type === 'deduction') row.classList.add('deduction');
                 
                 row.innerHTML = `
-                    <td>${formatDate(entry.date)}</td>
-                    <td>${entry.name}</td>
-                    <td class="currency">${entry.fullAmount.toFixed(2)}</td>
-                    <td class="currency">${entry.yourPortion >= 0 ? ' : '-}${Math.abs(entry.yourPortion).toFixed(2)}</td>
-                    <td>${entry.type.charAt(0).toUpperCase() + entry.type.slice(1)}</td>
-                    <td class="currency">${entry.runningTotal.toFixed(2)}</td>
+                    <td>${formatDate(bill.date)}</td>
+                    <td>${bill.name}</td>
+                    <td class="currency">$${bill.fullAmount.toFixed(2)}</td>
+                    <td class="currency">${bill.yourPortion >= 0 ? '$' : '-$'}${Math.abs(bill.yourPortion).toFixed(2)}</td>
+                    <td>${bill.type.charAt(0).toUpperCase() + bill.type.slice(1)}</td>
+                    <td class="currency">$${bill.runningTotal.toFixed(2)}</td>
                     <td>
-                        <button class="btn btn-danger" onclick="deleteEntry('${entry.id}')" style="padding: 5px 10px; font-size: 0.9rem;">Delete</button>
+                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.9rem;" 
+                                onclick="deleteEntry('${bill.id}')">Delete</button>
                     </td>
                 `;
                 
@@ -798,42 +696,50 @@
             });
             
             // Update debt banner
-            const currentTotal = billsData.length > 0 ? 
-                billsData[billsData.length - 1].runningTotal : runningBalance;
+            const currentTotal = billsData.length > 0 
+                ? billsData[billsData.length - 1].runningTotal 
+                : startingBalance;
+            
             document.getElementById('debtBanner').textContent = 
-                `Current Amount Owed: ${currentTotal.toFixed(2)}`;
-            document.getElementById('totalOwed').textContent = `${currentTotal.toFixed(2)}`;
+                `Current Amount Owed: $${currentTotal.toFixed(2)}`;
         }
 
+        // Update dashboard
         function updateDashboard() {
             let splitTotal = 0, fullTotal = 0, deductionTotal = 0;
             let splitCount = 0, fullCount = 0, deductionCount = 0;
             
-            const currentMonth = new Date().getMonth();
-            const currentYear = new Date().getFullYear();
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
             let monthAdded = 0, monthDeducted = 0;
             
-            billsData.forEach(entry => {
-                const entryDate = new Date(entry.date);
-                const isCurrentMonth = entryDate.getMonth() === currentMonth && 
-                                       entryDate.getFullYear() === currentYear;
+            billsData.forEach(bill => {
+                const billDate = new Date(bill.date);
+                const isCurrentMonth = billDate.getMonth() === currentMonth && 
+                                       billDate.getFullYear() === currentYear;
                 
-                if (entry.type === 'split') {
-                    splitTotal += entry.yourPortion;
+                if (bill.type === 'split') {
+                    splitTotal += bill.yourPortion;
                     splitCount++;
-                    if (isCurrentMonth) monthAdded += entry.yourPortion;
-                } else if (entry.type === 'full') {
-                    fullTotal += entry.yourPortion;
+                    if (isCurrentMonth) monthAdded += bill.yourPortion;
+                } else if (bill.type === 'full') {
+                    fullTotal += bill.yourPortion;
                     fullCount++;
-                    if (isCurrentMonth) monthAdded += entry.yourPortion;
-                } else if (entry.type === 'deduction') {
-                    deductionTotal += Math.abs(entry.yourPortion);
+                    if (isCurrentMonth) monthAdded += bill.yourPortion;
+                } else if (bill.type === 'deduction') {
+                    deductionTotal += Math.abs(bill.yourPortion);
                     deductionCount++;
-                    if (isCurrentMonth) monthDeducted += Math.abs(entry.yourPortion);
+                    if (isCurrentMonth) monthDeducted += Math.abs(bill.yourPortion);
                 }
             });
             
-            // Update metrics
+            // Update total owed
+            const currentTotal = billsData.length > 0 
+                ? billsData[billsData.length - 1].runningTotal 
+                : startingBalance;
+            
+            document.getElementById('totalOwed').textContent = `${currentTotal.toFixed(2)}`;
             document.getElementById('splitBillsTotal').textContent = `${splitTotal.toFixed(2)}`;
             document.getElementById('fullBillsTotal').textContent = `${fullTotal.toFixed(2)}`;
             document.getElementById('deductionsTotal').textContent = `${deductionTotal.toFixed(2)}`;
@@ -848,43 +754,46 @@
             document.getElementById('monthNet').textContent = `${(monthAdded - monthDeducted).toFixed(2)}`;
             
             // Update recent activity
-            const recentActivity = document.getElementById('recentActivity');
+            const recentDiv = document.getElementById('recentActivity');
             const recent = billsData.slice(-5).reverse();
+            
             if (recent.length > 0) {
-                recentActivity.innerHTML = recent.map(entry => 
-                    `<div style="padding: 5px 0; border-bottom: 1px solid #f1f3f4;">
-                        <strong>${formatDate(entry.date)}</strong>: ${entry.name} 
-                        (${entry.yourPortion >= 0 ? '+' : ''}${entry.yourPortion.toFixed(2)})
-                    </div>`
-                ).join('');
+                recentDiv.innerHTML = recent.map(bill => `
+                    <div style="padding: 5px 0; border-bottom: 1px solid #f1f3f4;">
+                        <strong>${formatDate(bill.date)}</strong>: ${bill.name} 
+                        (${bill.yourPortion >= 0 ? '+' : ''}${bill.yourPortion.toFixed(2)})
+                    </div>
+                `).join('');
+            } else {
+                recentDiv.innerHTML = '<p>No recent activity</p>';
             }
         }
 
+        // Update monthly view
         function updateMonthlyView() {
             const monthlyData = {};
-            let runningTotal = runningBalance;
+            let runningTotal = startingBalance;
             
-            billsData.forEach(entry => {
-                const date = new Date(entry.date);
+            // Group bills by month
+            billsData.forEach(bill => {
+                const date = new Date(bill.date);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 
                 if (!monthlyData[monthKey]) {
                     monthlyData[monthKey] = {
                         added: 0,
-                        deducted: 0,
-                        entries: []
+                        deducted: 0
                     };
                 }
                 
-                if (entry.type === 'deduction') {
-                    monthlyData[monthKey].deducted += Math.abs(entry.yourPortion);
+                if (bill.type === 'deduction') {
+                    monthlyData[monthKey].deducted += Math.abs(bill.yourPortion);
                 } else {
-                    monthlyData[monthKey].added += entry.yourPortion;
+                    monthlyData[monthKey].added += bill.yourPortion;
                 }
-                
-                monthlyData[monthKey].entries.push(entry);
             });
             
+            // Display monthly summary
             const tbody = document.getElementById('monthlyTableBody');
             tbody.innerHTML = '';
             
@@ -893,10 +802,13 @@
                 const net = data.added - data.deducted;
                 runningTotal += net;
                 
-                const row = document.createElement('tr');
                 const [year, month] = monthKey.split('-');
-                const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    year: 'numeric' 
+                });
                 
+                const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${monthName}</td>
                     <td class="currency">${data.added.toFixed(2)}</td>
@@ -904,11 +816,11 @@
                     <td class="currency">${net >= 0 ? ' : '-}${Math.abs(net).toFixed(2)}</td>
                     <td class="currency">${runningTotal.toFixed(2)}</td>
                 `;
-                
                 tbody.appendChild(row);
             });
         }
 
+        // Format date for display
         function formatDate(dateString) {
             const date = new Date(dateString);
             return date.toLocaleDateString('en-US', { 
@@ -918,14 +830,34 @@
             });
         }
 
-        function updateStatus(message) {
-            document.getElementById('realtimeStatus').innerHTML = `
-                <div class="status-indicator"></div>
-                <span>${message}</span>
-            `;
+        // Switch tabs
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Mark the clicked tab as active
+            event.target.classList.add('active');
+            
+            // Update views if needed
+            if (tabName === 'dashboard') {
+                updateDashboard();
+            } else if (tabName === 'monthly') {
+                updateMonthlyView();
+            }
         }
 
-        async function addEntry() {
+        // Add new entry
+        function addEntry() {
             const date = document.getElementById('entryDate').value;
             const name = document.getElementById('expenseName').value;
             const fullAmount = parseFloat(document.getElementById('expenseValue').value);
@@ -936,40 +868,24 @@
                 return;
             }
             
-            let yourPortion;
-            if (type === 'split') {
-                yourPortion = fullAmount / 2;
-            } else if (type === 'full') {
-                yourPortion = fullAmount;
-            } else if (type === 'deduction') {
-                yourPortion = -fullAmount;
-            }
-            
-            const newEntry = {
-                id: `${date}-${name}-${Date.now()}`,
+            const newBill = {
+                id: `bill-${Date.now()}`,
                 date,
                 name,
                 fullAmount,
-                yourPortion,
                 type,
-                timestamp: new Date(date).getTime(),
+                yourPortion: calculatePortion(fullAmount, type),
                 runningTotal: 0
             };
             
-            billsData.push(newEntry);
+            billsData.push(newBill);
             
-            // Save to Firebase if connected
-            if (window.firestore && window.db) {
-                try {
-                    const { setDoc, doc } = window.firestore;
-                    await setDoc(doc(window.db, 'bills', newEntry.id), newEntry);
-                } catch (error) {
-                    console.error('Error saving to Firebase:', error);
-                }
-            }
+            // Save to Firebase if available
+            saveToFirebase(newBill);
             
+            // Update displays
             calculateRunningTotals();
-            updateDisplay();
+            updateBillsTable();
             updateDashboard();
             updateMonthlyView();
             
@@ -981,71 +897,54 @@
             showAlert('Entry added successfully!', 'success');
         }
 
-        async function deleteEntry(id) {
+        // Delete entry
+        function deleteEntry(id) {
             if (!confirm('Are you sure you want to delete this entry?')) return;
             
-            billsData = billsData.filter(entry => entry.id !== id);
+            billsData = billsData.filter(bill => bill.id !== id);
             
-            // Delete from Firebase if connected
-            if (window.firestore && window.db) {
-                try {
-                    const { deleteDoc, doc } = window.firestore;
-                    await deleteDoc(doc(window.db, 'bills', id));
-                } catch (error) {
-                    console.error('Error deleting from Firebase:', error);
-                }
-            }
+            // Delete from Firebase if available
+            deleteFromFirebase(id);
             
+            // Update displays
             calculateRunningTotals();
-            updateDisplay();
+            updateBillsTable();
             updateDashboard();
             updateMonthlyView();
             
             showAlert('Entry deleted successfully!', 'success');
         }
 
-        async function clearAllData() {
+        // Clear all data
+        function clearAllData() {
             if (!confirm('Are you sure you want to clear ALL data? This cannot be undone!')) return;
             
             billsData = [];
             
-            // Clear Firebase collection if connected
-            if (window.firestore && window.db) {
-                try {
-                    const { getDocs, collection, deleteDoc } = window.firestore;
-                    const snapshot = await getDocs(collection(window.db, 'bills'));
-                    
-                    const deletePromises = [];
-                    snapshot.forEach((doc) => {
-                        deletePromises.push(deleteDoc(doc.ref));
-                    });
-                    
-                    await Promise.all(deletePromises);
-                } catch (error) {
-                    console.error('Error clearing Firebase:', error);
-                }
-            }
+            // Clear Firebase if available
+            clearFirebase();
             
-            updateDisplay();
+            updateBillsTable();
             updateDashboard();
             updateMonthlyView();
             
             showAlert('All data cleared!', 'success');
         }
 
+        // Download spreadsheet
         function downloadSpreadsheet() {
             const ws_data = [
                 ['Date', 'Expense Name', 'Full Amount', 'Your Portion', 'Type', 'Running Total']
             ];
             
-            billsData.forEach(entry => {
+            billsData.forEach(bill => {
                 ws_data.push([
-                    entry.date,
-                    entry.name,
-                    entry.fullAmount,
-                    entry.yourPortion,
-                    entry.type,
-                    entry.runningTotal
+                    bill.date,
+                    bill.name,
+                    bill.fullAmount,
+                    bill.yourPortion,
+                    bill.type,
+                    bill.runningTotal
                 ]);
             });
             
@@ -1058,7 +957,13 @@
             showAlert('Spreadsheet downloaded!', 'success');
         }
 
+        // Show alert messages
         function showAlert(message, type) {
+            const existingAlert = document.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
             const alert = document.createElement('div');
             alert.className = `alert alert-${type}`;
             alert.textContent = message;
@@ -1069,13 +974,96 @@
             }, 3000);
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // If Firebase is already loaded, initialize
-            if (window.firebaseReady) {
-                window.initializeApp();
+        // Firebase functions
+        async function saveToFirebase(bill) {
+            if (window.firebase && window.firebase.db) {
+                try {
+                    const { setDoc, doc } = window.firebase;
+                    await setDoc(doc(window.firebase.db, 'bills', bill.id), bill);
+                    console.log('Saved to Firebase');
+                } catch (error) {
+                    console.error('Firebase save error:', error);
+                }
             }
-            // Otherwise, initializeApp will be called when Firebase loads
+        }
+
+        async function deleteFromFirebase(id) {
+            if (window.firebase && window.firebase.db) {
+                try {
+                    const { deleteDoc, doc } = window.firebase;
+                    await deleteDoc(doc(window.firebase.db, 'bills', id));
+                    console.log('Deleted from Firebase');
+                } catch (error) {
+                    console.error('Firebase delete error:', error);
+                }
+            }
+        }
+
+        async function clearFirebase() {
+            if (window.firebase && window.firebase.db) {
+                try {
+                    const { getDocs, collection, deleteDoc } = window.firebase;
+                    const snapshot = await getDocs(collection(window.firebase.db, 'bills'));
+                    const promises = [];
+                    snapshot.forEach((doc) => {
+                        promises.push(deleteDoc(doc.ref));
+                    });
+                    await Promise.all(promises);
+                    console.log('Firebase cleared');
+                } catch (error) {
+                    console.error('Firebase clear error:', error);
+                }
+            }
+        }
+
+        function setupFirebaseListener() {
+            if (window.firebase && window.firebase.db) {
+                try {
+                    const { onSnapshot, collection, query, orderBy } = window.firebase;
+                    const q = query(
+                        collection(window.firebase.db, 'bills'),
+                        orderBy('date', 'asc')
+                    );
+                    
+                    onSnapshot(q, (snapshot) => {
+                        if (!snapshot.empty) {
+                            billsData = [];
+                            snapshot.forEach((doc) => {
+                                billsData.push(doc.data());
+                            });
+                            calculateRunningTotals();
+                            updateBillsTable();
+                            updateDashboard();
+                            updateMonthlyView();
+                            document.getElementById('realtimeStatus').innerHTML = 
+                                '<div class="status-indicator"></div><span>🟢 Connected - Real-time sync active</span>';
+                        }
+                    }, (error) => {
+                        console.error('Firebase listener error:', error);
+                        document.getElementById('realtimeStatus').innerHTML = 
+                            '<div class="status-indicator"></div><span>🟡 Working offline</span>';
+                    });
+                } catch (error) {
+                    console.error('Firebase setup error:', error);
+                }
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set today's date as default
+            document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+            
+            // Load initial data
+            processInitialBills();
+            updateBillsTable();
+            updateDashboard();
+            updateMonthlyView();
+            
+            // Try to set up Firebase listener after a delay
+            setTimeout(() => {
+                setupFirebaseListener();
+            }, 2000);
         });
     </script>
 </body>
